@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns:thr="http://purl.org/syndication/thread/1.0" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:schema="http://schema.org/" xmlns="http://www.w3.org/2005/Atom">
+<title>The Red Badge of Courage</title>
+<id>http://www.feedbooks.com/book/4527</id>
+<author>
+  <name>Stephen Crane</name>
+  <uri>http://www.feedbooks.com/author/1314</uri>
+</author>
+<published>2009-12-29T15:19:25Z</published>
+<updated>2017-04-04T13:37:05Z</updated>
+<dcterms:language>en</dcterms:language>
+<dcterms:issued>1895</dcterms:issued>
+<category term="FBFIC000000" label="Fiction" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC032000" label="War &amp; Military" scheme="http://www.feedbooks.com/categories"/>
+<summary>The Red Badge of Courage is an 1895 war novel by American author Stephen Crane. It is considered one of the most influential works in American literature. The novel, a depiction on the cruelty of the American Civil War, features a young recruit wh...</summary>
+<dcterms:extent>41,923 words</dcterms:extent>
+<dcterms:source>http://www.gutenberg.org/etext/463</dcterms:source>
+<link type="text/html" title="View on Feedbooks" rel="alternate" href="http://generation.feedbooks.com/book/4527"/>
+<link type="application/epub+zip" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/4527.epub"/>
+<link type="application/x-mobipocket-ebook" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/4527.mobi"/>
+<link type="application/pdf" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/4527.pdf"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image" href="http://covers.feedbooks.net/book/4527.jpg?size=large&amp;t=1491313025"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" href="http://covers.feedbooks.net/book/4527.jpg?t=1491313025"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="From the same author" rel="http://www.feedbooks.com/opds/same_author" href="http://generation.feedbooks.com/author/1314/books/top.atom?lang=en"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Categories for this book" rel="related" href="http://generation.feedbooks.com/book/4527/categories.atom"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Reading lists for this book" rel="related" href="http://generation.feedbooks.com/book/4527/lists.atom"/>
+<link type="application/atom+xml" title="Comments for this book (0)" rel="replies" href="http://generation.feedbooks.com/book/4527/comments.atom" thr:count="0" thr:updated="2016-09-20T14:10:36Z"/>
+<content type="html">&lt;p&gt;The Red Badge of Courage is an 1895 war novel by American author Stephen Crane. It is considered one of the most influential works in American literature. The novel, a depiction on the cruelty of the American Civil War, features a young recruit who overcomes initial fears to become a hero on the battlefield. The book made Crane an international success. Although he was born after the war and had not at the time experienced battle firsthand, the novel is considered an example of Realism.&lt;/p&gt;</content>
+<link type="application/atom+xml;type=entry;profile=opds-catalog" rel="self" href="http://generation.feedbooks.com/book/4527.atom"/>
+  <link type="application/atom+xml" rel="contents" href="http://generation.feedbooks.com/book/4527/contents.atom"/>
+</entry>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns:thr="http://purl.org/syndication/thread/1.0" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:schema="http://schema.org/" xmlns="http://www.w3.org/2005/Atom">
+<title>Dead Souls</title>
+<id>http://www.feedbooks.com/book/12</id>
+<author>
+  <name>Nikolai Gogol</name>
+  <uri>http://www.feedbooks.com/author/9</uri>
+  <schema:birthDate>1809</schema:birthDate>
+  <schema:deathDate>1851</schema:deathDate>
+</author>
+<published>2006-12-14T17:16:10Z</published>
+<updated>2017-08-25T05:37:17Z</updated>
+<dcterms:language>en</dcterms:language>
+<dcterms:issued>1842</dcterms:issued>
+<category term="FBFIC000000" label="Fiction" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC019000" label="Literary" scheme="http://www.feedbooks.com/categories"/>
+<summary>Since its publication in 1842, Dead Souls has been celebrated as a supremely realistic portrait of provincial Russian life and as a splendidly exaggerated tale; as a paean to the Russian spirit and as a remorseless satire of imperial Russian venal...</summary>
+<dcterms:extent>115,799 words</dcterms:extent>
+<dcterms:source>Project Gutenberg</dcterms:source>
+<link type="text/html" title="View on Feedbooks" rel="alternate" href="http://generation.feedbooks.com/book/12"/>
+<link type="application/epub+zip" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/12.epub"/>
+<link type="application/x-mobipocket-ebook" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/12.mobi"/>
+<link type="application/pdf" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/12.pdf"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image" href="http://covers.feedbooks.net/book/12.jpg?size=large&amp;t=1491307453"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" href="http://covers.feedbooks.net/book/12.jpg?t=1491307453"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="From the same author" rel="http://www.feedbooks.com/opds/same_author" href="http://generation.feedbooks.com/author/9/books/top.atom?lang=en"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Categories for this book" rel="related" href="http://generation.feedbooks.com/book/12/categories.atom"/>
+<content type="html">&lt;p&gt;Since its publication in 1842, Dead Souls has been celebrated as a supremely realistic portrait of provincial Russian life and as a splendidly exaggerated tale; as a paean to the Russian spirit and as a remorseless satire of imperial Russian venality, vulgarity, and pomp. As Gogol's wily antihero, Chichikov, combs the back country wheeling and dealing for &quot;dead souls&quot;--deceased serfs who still represent money to anyone sharp enough to trade in them--we are introduced to a Dickensian cast of peasants, landowners, and conniving petty officials, few of whom can resist the seductive illogic of Chichikov's proposition.&lt;/p&gt;</content>
+<link type="application/atom+xml;type=entry;profile=opds-catalog" rel="self" href="http://generation.feedbooks.com/book/12.atom"/>
+  <link type="application/atom+xml" rel="contents" href="http://generation.feedbooks.com/book/12/contents.atom"/>
+</entry>

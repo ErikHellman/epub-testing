@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns:thr="http://purl.org/syndication/thread/1.0" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:schema="http://schema.org/" xmlns="http://www.w3.org/2005/Atom">
+<title>Metropolis</title>
+<id>http://www.feedbooks.com/book/1123</id>
+<author>
+  <name>Thea von Harbou</name>
+  <uri>http://www.feedbooks.com/author/202</uri>
+  <schema:birthDate>1888</schema:birthDate>
+  <schema:deathDate>1954</schema:deathDate>
+</author>
+<published>2007-06-09T08:45:37Z</published>
+<updated>2017-06-24T15:23:49Z</updated>
+<dcterms:language>en</dcterms:language>
+<dcterms:issued>1927</dcterms:issued>
+<category term="FBFIC000000" label="Fiction" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC028000" label="Science Fiction" scheme="http://www.feedbooks.com/categories"/>
+<summary>This is Metropolis, the novel that the film's screenwriter -- Thea von Harbou, who was director Fritz Lang's wife, and a collaborator in the creation of the film -- this is the novel that Harbou wrote from her own notes. It contains bits of the st...</summary>
+<dcterms:extent>70,633 words</dcterms:extent>
+<dcterms:source>http://gutenberg.net.au</dcterms:source>
+<rights>This work is available for countries where copyright is Life+50.</rights>
+<link type="text/html" title="View on Feedbooks" rel="alternate" href="http://generation.feedbooks.com/book/1123"/>
+<link type="application/epub+zip" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/1123.epub"/>
+<link type="application/x-mobipocket-ebook" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/1123.mobi"/>
+<link type="application/pdf" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/1123.pdf"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image" href="http://covers.feedbooks.net/book/1123.jpg?size=large&amp;t=1491309384"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" href="http://covers.feedbooks.net/book/1123.jpg?t=1491309384"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Categories for this book" rel="related" href="http://generation.feedbooks.com/book/1123/categories.atom"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Reading lists for this book" rel="related" href="http://generation.feedbooks.com/book/1123/lists.atom"/>
+<content type="html">&lt;p&gt;This is Metropolis, the novel that the film's screenwriter -- Thea von Harbou, who was director Fritz Lang's wife, and a collaborator in the creation of the film -- this is the novel that Harbou wrote from her own notes. It contains bits of the story that got lost on the cutting-room floor; in a very real way it is the only way to understand the film.&lt;/p&gt;</content>
+<link type="application/atom+xml;type=entry;profile=opds-catalog" rel="self" href="http://generation.feedbooks.com/book/1123.atom"/>
+  <link type="application/atom+xml" rel="contents" href="http://generation.feedbooks.com/book/1123/contents.atom"/>
+</entry>

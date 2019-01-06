@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns:thr="http://purl.org/syndication/thread/1.0" xmlns:dcterms="http://purl.org/dc/terms/" xmlns="http://www.w3.org/2005/Atom" xmlns:schema="http://schema.org/">
+<title>Treasure Island</title>
+<id>http://www.feedbooks.com/book/97</id>
+<author>
+  <name>Robert Louis Stevenson</name>
+  <uri>http://www.feedbooks.com/author/37</uri>
+  <schema:birthDate>1850</schema:birthDate>
+  <schema:deathDate>1894</schema:deathDate>
+</author>
+<published>2007-01-03T13:33:26Z</published>
+<updated>2017-08-25T05:40:55Z</updated>
+<dcterms:language>en</dcterms:language>
+<dcterms:issued>1883</dcterms:issued>
+<category term="FBFIC000000" label="Fiction" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC002000" label="Action &amp; Adventure" scheme="http://www.feedbooks.com/categories"/>
+<summary>While going through the possessions of a deceased guest who owed them money, the mistress of the inn and her son find a treasure map that leads them to a pirate's fortune.</summary>
+<dcterms:extent>67,527 words</dcterms:extent>
+<dcterms:source>Wikisource</dcterms:source>
+<link type="text/html" title="View on Feedbooks" rel="alternate" href="http://generation.feedbooks.com/book/97"/>
+<link type="application/epub+zip" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/97.epub"/>
+<link type="application/x-mobipocket-ebook" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/97.mobi"/>
+<link type="application/pdf" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/97.pdf"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image" href="http://covers.feedbooks.net/book/97.jpg?size=large&amp;t=1491307677"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" href="http://covers.feedbooks.net/book/97.jpg?t=1491307677"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="From the same author" rel="http://www.feedbooks.com/opds/same_author" href="http://generation.feedbooks.com/author/37/books/top.atom?lang=en"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Categories for this book" rel="related" href="http://generation.feedbooks.com/book/97/categories.atom"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Reading lists for this book" rel="related" href="http://generation.feedbooks.com/book/97/lists.atom"/>
+<content type="html">&lt;p&gt;While going through the possessions of a deceased guest who owed them money, the mistress of the inn and her son find a treasure map that leads them to a pirate's fortune.&lt;/p&gt;</content>
+<link type="application/atom+xml;type=entry;profile=opds-catalog" rel="self" href="http://generation.feedbooks.com/book/97.atom"/>
+  <link type="application/atom+xml" rel="contents" href="http://generation.feedbooks.com/book/97/contents.atom"/>
+</entry>

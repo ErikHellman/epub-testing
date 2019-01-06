@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<entry xmlns:schema="http://schema.org/" xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0" xmlns:dcterms="http://purl.org/dc/terms/">
+<title>The Dark World</title>
+<id>http://www.feedbooks.com/book/2317</id>
+<author>
+  <name>Henry Kuttner</name>
+  <uri>http://www.feedbooks.com/author/339</uri>
+</author>
+<published>2008-03-13T22:39:00Z</published>
+<updated>2017-04-04T13:00:10Z</updated>
+<dcterms:language>en</dcterms:language>
+<dcterms:issued>1946</dcterms:issued>
+<category term="FBFIC000000" label="Fiction" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC009000" label="Fantasy" scheme="http://www.feedbooks.com/categories"/>
+<category term="FBFIC028000" label="Science Fiction" scheme="http://www.feedbooks.com/categories"/>
+<summary>World War II veteran Edward Bond's recuperation from a disastrous fighter plane crash takes a distinct turn for the weird when he encounters a giant wolf, a red witch, and the undeniable power of the need-fire, a portal to a world of magic and swo...</summary>
+<dcterms:extent>37,677 words</dcterms:extent>
+<dcterms:source>http://gutenberg.org</dcterms:source>
+<rights>This work is available for countries where copyright is Life+50.</rights>
+<link type="text/html" title="View on Feedbooks" rel="alternate" href="http://generation.feedbooks.com/book/2317"/>
+<link type="application/epub+zip" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/2317.epub"/>
+<link type="application/x-mobipocket-ebook" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/2317.mobi"/>
+<link type="application/pdf" rel="http://opds-spec.org/acquisition" href="http://generation.feedbooks.com/book/2317.pdf"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image" href="http://covers.feedbooks.net/book/2317.jpg?size=large&amp;t=1491310810"/>
+<link type="image/jpeg" rel="http://opds-spec.org/image/thumbnail" href="http://covers.feedbooks.net/book/2317.jpg?t=1491310810"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=acquisition" title="From the same author" rel="http://www.feedbooks.com/opds/same_author" href="http://generation.feedbooks.com/author/339/books/top.atom?lang=en"/>
+<link type="application/atom+xml;profile=opds-catalog;kind=navigation" title="Categories for this book" rel="related" href="http://generation.feedbooks.com/book/2317/categories.atom"/>
+<link type="application/atom+xml" title="Comments for this book (1)" thr:updated="2010-06-02T05:45:57Z" rel="replies" href="http://generation.feedbooks.com/book/2317/comments.atom" thr:count="1"/>
+<link type="text/html" title="Comments for this book (1)" thr:updated="2010-06-02T05:45:57Z" rel="replies" href="http://generation.feedbooks.com/book/2317/comments" thr:count="1"/>
+<content type="html">&lt;p&gt;World War II veteran Edward Bond's recuperation from a disastrous fighter plane crash takes a distinct turn for the weird when he encounters a giant wolf, a red witch, and the undeniable power of the need-fire, a portal to a world of magic and swordplay at once terribly new and hauntingly familiar. In the Dark World, Bond opposes the machinations of the dread lord Ganelon and his terrible retinue of werewolves, wizards, and witches, but all is not as it seems in this shadowy mirror of the real world, and Bond discovers that a part of him feels more at home here than he ever has on Earth.&lt;/p&gt;</content>
+<link type="application/atom+xml;type=entry;profile=opds-catalog" rel="self" href="http://generation.feedbooks.com/book/2317.atom"/>
+  <link type="application/atom+xml" rel="contents" href="http://generation.feedbooks.com/book/2317/contents.atom"/>
+</entry>
