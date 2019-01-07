@@ -37,7 +37,6 @@ body {
     column-gap: var(--column-padding);
     column-fill: auto;
     overflow: hidden;
-    transition: transform 200ms;
 
     line-height: 1.2;
 }
