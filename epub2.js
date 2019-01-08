@@ -56,8 +56,9 @@ class Epub2Resource {
         iframe.contentDocument.head.appendChild(cssLink);
         disableBodyScroll(iframe.contentDocument);
         disableBodyScroll(iframe.contentDocument.body);
-        const detector = new GestureDetector(iframe.contentDocument.body);
+        const detector = new GestureDetector(iframe.contentDocument.querySelector('html'));
         detector.onPan = e => this.performPan(e, navPoint);
+        detector.onClick = e => this.performClick(e, navPoint);
         console.log(`Rendered ${navPoint.id}`);
       });
       iframe.addEventListener('unload', e => console.log('unload', e));
@@ -93,11 +94,85 @@ class Epub2Resource {
   chapterPosition(element, navPoint) {
   }
 
+  // TODO Lots of duplicated code from performPan.
+  performClick(event, navPoint) {
+    const element = event.target;
+    let direction = 0;
+    console.log(`Click at ${event.screenX}`);
+    if (event.screenX < (document.body.clientWidth * 0.2)) {
+      direction = 1;
+    } else if (event.screenX > (document.body.clientWidth * 0.8)) {
+      direction = -1;
+    }
+
+    if (direction === 0) {
+      console.log('Center click ignored!');
+      return;
+    }
+
+    const columnGap = 40; // TODO This shouldn't be hard coded.
+    const pageScrollWidth = element.clientWidth - columnGap;
+    const maxScroll = element.scrollWidth - columnGap;
+    const currentFrame = document.querySelector(`#${navPoint.id}`);
+    console.log('Direction', direction);
+    console.log('navPoint.translateX', navPoint.translateX);
+    console.log('maxScroll', maxScroll);
+    console.log('pageScrollWidth', pageScrollWidth);
+
+    // Chrome and Safari treats maxScroll differently
+    let chromeScrollCheck = (Math.abs(navPoint.translateX) + pageScrollWidth);
+    if ((direction === 1 && navPoint.translateX === 0)
+        || (direction === -1 && pageScrollWidth === maxScroll)
+        || (direction === -1 && chromeScrollCheck === element.scrollWidth)) {
+      console.log('First or last page in chapter!');
+      let firstChapterFrame = document.body.children[0];
+      if (direction === 1 && firstChapterFrame.id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
+        console.log('First page in first chapter - stop here!');
+        return;
+      } else {
+        let lastChapterIndex = document.body.childElementCount - 1;
+        let lastChapterFrame = document.body.children[lastChapterIndex];
+        if (direction === -1 && lastChapterFrame.id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
+          console.log('Last page in last chapter - stop here!');
+          return;
+        }
+      }
+
+      let pageWidth = document.body.clientWidth;
+      if (direction === -1) {
+        this.chapterTranslateX -= pageWidth;
+        this.preloadFrames(this.nextNavPoint(navPoint));
+      } else if (direction === 1) {
+        this.chapterTranslateX += pageWidth;
+        this.preloadFrames(this.previousNavPoint(navPoint));
+      }
+
+      document.body.addEventListener('transitionend', e => {
+        document.body.style.transition = 'unset';
+      }, {once: true});
+      document.body.style.transition = 'transform 200ms';
+      document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+    } else {
+      if (direction === -1) {
+        navPoint.translateX -= pageScrollWidth;
+      } else if (direction === 1) {
+        navPoint.translateX += pageScrollWidth;
+      }
+
+      console.log('navPoint.translateX', navPoint.translateX);
+      element.addEventListener('transitionend', e => {
+        element.style.transition = 'unset';
+      }, {once: true});
+      element.style.transition = 'transform 200ms';
+      element.style.transform = `translateX(${navPoint.translateX}px)`;
+    }
+  }
+
   performPan(event, navPoint) {
+    const direction = event.deltaX > 0 ? -1 : 1;
     const columnGap = 40; // TODO This shouldn't be hard coded.
     const element = event.target;
     const pageScrollWidth = element.clientWidth - columnGap;
-    const direction = event.deltaX > 0 ? -1 : 1;
     const maxScroll = element.scrollWidth - columnGap;
     const currentFrame = document.querySelector(`#${navPoint.id}`);
     console.log('Direction', direction);
@@ -109,7 +184,9 @@ class Epub2Resource {
 
     if ((direction === 1 && navPoint.translateX === 0)
         || (direction === -1 && pageScrollWidth === maxScroll)
-        || (direction === -1 && (Math.abs(navPoint.translateX) + pageScrollWidth) === element.scrollWidth)) {
+        || (direction === -1 &&
+            (Math.abs(navPoint.translateX) + pageScrollWidth) ===
+            element.scrollWidth)) {
       console.log('First or last page in chapter!');
       if (direction === 1 && document.body.children[0].id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
         console.log('First page in first chapter - stop here!');
@@ -169,7 +246,6 @@ class Epub2Resource {
         -(event.deltaX)}px)`;
         console.log('pan', navPoint.translateX + -(event.deltaX));
       }
-
     }
   }
 
@@ -230,6 +306,9 @@ class Epub2Resource {
 }
 
 class GestureDetector {
+  static get CLICK_DELAY_MS() {
+    return 500;
+  }
 
   constructor(element) {
     this._dragListener = null;
@@ -255,6 +334,7 @@ class GestureDetector {
       case 'touchstart':
         this.state = 'dragging';
         this.startCoords = {
+          timestamp: new Date().getTime(),
           screenX: event.touches[0].screenX,
           screenY: event.touches[0].screenY,
         };
@@ -262,6 +342,7 @@ class GestureDetector {
         break;
       case 'touchmove':
         const screenCoords = {
+          timestamp: new Date().getTime(),
           screenX: event.touches[0].screenX,
           screenY: event.touches[0].screenY,
         };
@@ -271,8 +352,12 @@ class GestureDetector {
       case 'touchend':
       case 'touchcancel':
         this.state = 'passive';
+        const now = new Date().getTime();
         if (this.previousCoords) {
           this.emitDragEvent(this.previousCoords, true, false);
+        } else if (now - this.startCoords.timestamp <=
+            GestureDetector.CLICK_DELAY_MS) {
+          this.emitClickEvent(this.startCoords);
         }
         this.previousCoords = null;
         this.startCoords = null;
@@ -280,6 +365,7 @@ class GestureDetector {
       case 'mousedown':
         this.state = 'dragging';
         this.startCoords = {
+          timestamp: new Date().getTime(),
           screenX: event.screenX,
           screenY: event.screenY,
         };
@@ -287,6 +373,7 @@ class GestureDetector {
       case 'mousemove':
         if (this.state === 'dragging') {
           const screenCoords = {
+            timestamp: new Date().getTime(),
             screenX: event.screenX,
             screenY: event.screenY,
           };
@@ -299,8 +386,12 @@ class GestureDetector {
         if (this.state === 'dragging') {
           console.log(event.type, event);
           this.state = 'passive';
+          const now = new Date().getTime();
           if (this.previousCoords) {
             this.emitDragEvent(this.previousCoords, true, false);
+          } else if (now - this.startCoords.timestamp <=
+              GestureDetector.CLICK_DELAY_MS) {
+            this.emitClickEvent(this.startCoords);
           }
           this.previousCoords = null;
           this.startCoords = null;
