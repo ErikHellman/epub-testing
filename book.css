@@ -27,8 +27,6 @@ body {
     -webkit-user-select: none !important;
     -webkit-touch-callout: none !important;
     overflow: hidden;
-    transition: transform 200ms;
-
 }
 
 body * {
