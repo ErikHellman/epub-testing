@@ -13,6 +13,7 @@ class Epub2Resource {
   constructor(href) {
     this.href = href;
     this.chapterTranslateX = 0;
+    this.currentNavPoint = null;
   }
 
   async init() {
@@ -44,6 +45,10 @@ class Epub2Resource {
         });
   }
 
+  get currentFrame() {
+    return document.querySelector(`#${this.currentNavPoint.id}`);
+  }
+
   loadChapter(navPoint, rootElement) {
     const iframe = rootElement.querySelector(`#${navPoint.id}`);
     if (iframe.src === '') {
@@ -53,13 +58,51 @@ class Epub2Resource {
         cssLink.rel = 'stylesheet';
         cssLink.href = '/resource.css';
         cssLink.type = 'text/css';
+        cssLink.addEventListener('load', () => {
+          const columnGap = 40; // TODO This shouldn't be hard coded.
+          navPoint.scrollWidth = iframe.contentDocument.body.scrollWidth;
+          console.log(
+              `Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
+          const navPointIndex = this.navigationList.findIndex(np => {
+            return np.id === navPoint.id;
+          });
+          const currentIndex = this.navigationList.findIndex(np => {
+            return np.id === this.currentNavPoint.id;
+          });
+          const html = iframe.contentDocument.querySelector('head');
+
+          if (navPoint.id === this.currentNavPoint.id) {
+            let index = this.navigationList.findIndex(np => {
+              return navPoint.id === np.id;
+            });
+
+            if (index >= 0) {
+              this.chapterTranslateX = index * -(window.innerWidth);
+              console.log(
+                  `Jump to chapter ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
+              document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+              console.log(`Rendered ${navPoint.id}`);
+            } else {
+              console.error('Invalid or unexpected navPoint!', navPoint);
+            }
+          } else if (currentIndex > navPointIndex && navPointIndex >= 0) {
+            navPoint.translateX = navPoint.scrollWidth -
+                (window.innerWidth - columnGap);
+            html.style.transform = `translateX(${navPoint.translateX}px)`;
+            console.log(`Position earlier chapter to ${navPoint.translateX}`);
+          } else if (currentIndex < navPointIndex && navPointIndex >= 0) {
+            navPoint.translateX = 0;
+            html.style.transform = `translateX(${navPoint.translateX}px)`;
+            console.log(`Position later chapter to ${navPoint.translateX}`);
+          }
+        });
         iframe.contentDocument.head.appendChild(cssLink);
         disableBodyScroll(iframe.contentDocument);
         disableBodyScroll(iframe.contentDocument.body);
-        const detector = new GestureDetector(iframe.contentDocument.querySelector('html'));
+        let htmlElem = iframe.contentDocument.querySelector('html');
+        const detector = new GestureDetector(htmlElem);
         detector.onPan = e => this.performPan(e, navPoint);
         detector.onClick = e => this.performClick(e, navPoint);
-        console.log(`Rendered ${navPoint.id}`);
       });
       iframe.addEventListener('unload', e => console.log('unload', e));
       iframe.src = navPoint.src;
@@ -69,12 +112,14 @@ class Epub2Resource {
   }
 
   previousNavPoint(currentNavPoint) {
-    let currentIndex = this.navigationList.indexOf(currentNavPoint);
+    let currentIndex = this.navigationList.findIndex(
+        np => currentNavPoint.id === np.id);
     return this.navigationList[currentIndex - 1];
   }
 
   nextNavPoint(currentNavPoint) {
-    let currentIndex = this.navigationList.indexOf(currentNavPoint);
+    let currentIndex = this.navigationList.findIndex(
+        np => currentNavPoint.id === np.id);
     return this.navigationList[currentIndex + 1];
   }
 
@@ -91,80 +136,124 @@ class Epub2Resource {
     }
   }
 
-  chapterPosition(element, navPoint) {
+  updateProgress() {
+    console.log('Store current navPoint:', this.currentNavPoint);
+    localStorage.setItem(`${this.href}/currentNavPoint`,
+        JSON.stringify(this.currentNavPoint));
   }
 
-  // TODO Lots of duplicated code from performPan.
-  performClick(event, navPoint) {
-    const element = event.target;
-    let direction = 0;
-    console.log(`Click at ${event.screenX}`);
-    if (event.screenX < (document.body.clientWidth * 0.2)) {
-      direction = 1;
-    } else if (event.screenX > (document.body.clientWidth * 0.8)) {
-      direction = -1;
-    }
+  goToChapter(navPoint) {
+    let index = this.navigationList.findIndex(np => {
+      return navPoint.id === np.id;
+    });
 
-    if (direction === 0) {
-      console.log('Center click ignored!');
-      return;
-    }
-
-    const columnGap = 40; // TODO This shouldn't be hard coded.
-    const pageScrollWidth = element.clientWidth - columnGap;
-    const maxScroll = element.scrollWidth - columnGap;
-    const currentFrame = document.querySelector(`#${navPoint.id}`);
-    console.log('Direction', direction);
-    console.log('navPoint.translateX', navPoint.translateX);
-    console.log('maxScroll', maxScroll);
-    console.log('pageScrollWidth', pageScrollWidth);
-
-    // Chrome and Safari treats maxScroll differently
-    let chromeScrollCheck = (Math.abs(navPoint.translateX) + pageScrollWidth);
-    if ((direction === 1 && navPoint.translateX === 0)
-        || (direction === -1 && pageScrollWidth === maxScroll)
-        || (direction === -1 && chromeScrollCheck === element.scrollWidth)) {
-      console.log('First or last page in chapter!');
-      let firstChapterFrame = document.body.children[0];
-      if (direction === 1 && firstChapterFrame.id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
-        console.log('First page in first chapter - stop here!');
-        return;
+    if (index >= 0) {
+      this.currentNavPoint = this.navigationList[index];
+      this.chapterTranslateX = index * -(window.innerWidth);
+      if (this.currentFrame.src !== '') {
+        console.log(
+            `Jump to chapter ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
+        document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+        console.log(`Rendered ${navPoint.id}`);
+        this.preloadFrames(this.currentNavPoint);
       } else {
-        let lastChapterIndex = document.body.childElementCount - 1;
-        let lastChapterFrame = document.body.children[lastChapterIndex];
-        if (direction === -1 && lastChapterFrame.id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
-          console.log('Last page in last chapter - stop here!');
-          return;
-        }
+        this.loadChapter(this.currentNavPoint, document.body);
+        this.preloadFrames(this.currentNavPoint);
       }
-
-      let pageWidth = document.body.clientWidth;
-      if (direction === -1) {
-        this.chapterTranslateX -= pageWidth;
-        this.preloadFrames(this.nextNavPoint(navPoint));
-      } else if (direction === 1) {
-        this.chapterTranslateX += pageWidth;
-        this.preloadFrames(this.previousNavPoint(navPoint));
-      }
-
-      document.body.addEventListener('transitionend', e => {
-        document.body.style.transition = 'unset';
-      }, {once: true});
-      document.body.style.transition = 'transform 200ms';
-      document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
     } else {
-      if (direction === -1) {
-        navPoint.translateX -= pageScrollWidth;
-      } else if (direction === 1) {
-        navPoint.translateX += pageScrollWidth;
-      }
+      console.error('Invalid or unexpected navPoint!', navPoint);
+    }
+  }
 
-      console.log('navPoint.translateX', navPoint.translateX);
+  nextPage() {
+    const columnGap = 40; // TODO This shouldn't be hard coded.
+    const screenWidth = window.innerWidth;
+    const chapterWidth = this.currentNavPoint.scrollWidth;
+    const pageScrollAmount = screenWidth - columnGap;
+    const element = this.currentFrame.contentDocument.querySelector('html');
+    console.log('Current frame:', element);
+    console.log('Next page:', Math.abs(this.currentNavPoint.translateX),
+        screenWidth, chapterWidth);
+
+    let currentId = this.currentNavPoint.id;
+    let currentIdx = this.navigationList.findIndex(np => np.id === currentId);
+    let nextTranslate = Math.abs(this.currentNavPoint.translateX) + screenWidth;
+    if (nextTranslate >= chapterWidth) {
+      if (currentIdx === (this.navigationList.length - 1)) {
+        console.log('Last page in last chapter - stop here!');
+      } else {
+        console.log('Scroll to next chapter!');
+        this.chapterTranslateX -= screenWidth;
+
+        document.body.addEventListener('transitionend', e => {
+          document.body.style.transition = 'unset';
+        }, {once: true});
+        document.body.style.transition = 'transform 200ms';
+        document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+        this.currentNavPoint = this.nextNavPoint(this.currentNavPoint);
+        this.updateProgress();
+        this.preloadFrames(this.currentNavPoint);
+        console.log('New chapter:', this.currentNavPoint, this.currentFrame);
+      }
+    } else {
+      console.log('Scroll to next page.');
+      this.currentNavPoint.translateX -= pageScrollAmount;
       element.addEventListener('transitionend', e => {
         element.style.transition = 'unset';
       }, {once: true});
       element.style.transition = 'transform 200ms';
-      element.style.transform = `translateX(${navPoint.translateX}px)`;
+      element.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+    }
+    this.updateProgress();
+  }
+
+  previousPage() {
+    const columnGap = 40; // TODO This shouldn't be hard coded.
+    const screenWidth = window.innerWidth;
+    const pageScrollAmount = screenWidth - columnGap;
+    const element = this.currentFrame.contentDocument.querySelector('html');
+    console.log('Current frame:', element);
+    console.log('Previous page:', Math.abs(this.currentNavPoint.translateX),
+        screenWidth);
+
+    if (this.currentNavPoint.translateX === 0) {
+      if (this.currentNavPoint.id === this.navigationList[0].id) {
+        console.log('First page in first chapter - ignore!');
+      } else {
+        console.log('Scroll to previous chapter!');
+        this.chapterTranslateX += screenWidth;
+
+        document.body.addEventListener('transitionend', e => {
+          document.body.style.transition = 'unset';
+        }, {once: true});
+        document.body.style.transition = 'transform 200ms';
+        document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+        this.currentNavPoint = this.previousNavPoint(this.currentNavPoint);
+        this.updateProgress();
+        this.preloadFrames(this.currentNavPoint);
+        console.log('New chapter:', this.currentNavPoint, this.currentFrame);
+      }
+    } else {
+      console.log('Scroll to previous chapter.');
+      this.currentNavPoint.translateX += pageScrollAmount;
+      element.addEventListener('transitionend', e => {
+        element.style.transition = 'unset';
+      }, {once: true});
+      element.style.transition = 'transform 200ms';
+      element.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+    }
+    this.updateProgress();
+  }
+
+  // TODO Lots of duplicated code from performPan.
+  performClick(event, navPoint) {
+    console.log(`Click at ${event.screenX}`);
+    if (event.screenX < (window.innerWidth * 0.2)) {
+      this.previousPage();
+    } else if (event.screenX > (window.innerWidth * 0.8)) {
+      this.nextPage();
+    } else {
+      console.log('Center click ignored!');
     }
   }
 
@@ -172,9 +261,12 @@ class Epub2Resource {
     const direction = event.deltaX > 0 ? -1 : 1;
     const columnGap = 40; // TODO This shouldn't be hard coded.
     const element = event.target;
-    const pageScrollWidth = element.clientWidth - columnGap;
-    const maxScroll = element.scrollWidth - columnGap;
+    const screenWidth = window.innerWidth;
+    const pageScrollWidth = window.innerWidth - columnGap;
+    const maxScroll = navPoint.scrollWidth - columnGap;
+    const chapterWidth = this.currentNavPoint.scrollWidth;
     const currentFrame = document.querySelector(`#${navPoint.id}`);
+
     console.log('Direction', direction);
     console.log('navPoint.translateX', navPoint.translateX);
     console.log('maxScroll', maxScroll);
@@ -182,69 +274,95 @@ class Epub2Resource {
     console.log('Final event:', event.isFinal);
     console.log('First event:', event.isFirst);
 
-    if ((direction === 1 && navPoint.translateX === 0)
-        || (direction === -1 && pageScrollWidth === maxScroll)
-        || (direction === -1 &&
-            (Math.abs(navPoint.translateX) + pageScrollWidth) ===
-            element.scrollWidth)) {
-      console.log('First or last page in chapter!');
-      if (direction === 1 && document.body.children[0].id === currentFrame.id) { // TODO: Fetch the id from navigationList instead
-        console.log('First page in first chapter - stop here!');
-        return;
-      } else if (direction === -1 &&
-          document.body.children[document.body.childElementCount - 1].id ===
-          currentFrame.id) { // TODO: Fetch the id from navigationList instead
-        console.log('Last page in last chapter - stop here!');
-        return;
-      }
+    let currentId = this.currentNavPoint.id;
+    let currentIdx = this.navigationList.findIndex(np => np.id === currentId);
+    let nextPageTranslate = Math.abs(this.currentNavPoint.translateX) +
+        screenWidth;
 
-      const currentTranslateX = this.chapterTranslateX + -(event.deltaX);
-      if (event.isFinal) {
-        let pageWidth = document.body.clientWidth;
-        const remainder = Math.abs(currentTranslateX % pageWidth);
-        if (direction === -1 && remainder > pageWidth / 2) {
-          this.chapterTranslateX -= pageWidth;
-          this.preloadFrames(this.nextNavPoint(navPoint));
-        } else if (direction === 1 && remainder < pageWidth / 2) {
-          this.chapterTranslateX += pageWidth;
-          this.preloadFrames(this.previousNavPoint(navPoint));
+    const crossedThreshold = Math.abs(event.deltaX) > 0.5 * screenWidth;
+    if (direction === 1) { // back
+      if (this.currentNavPoint.translateX === 0) { // chapter
+        if (this.currentNavPoint.id === this.navigationList[0].id) {
+          console.log('First page in first chapter - ignore!');
+        } else {
+          if (event.isFinal) {
+            if (crossedThreshold) {
+              this.previousPage();
+            } else {
+              document.body.addEventListener('transitionend', e => {
+                document.body.style.transition = 'unset';
+              }, {once: true});
+              document.body.style.transition = 'transform 200ms';
+              document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+            }
+          } else {
+            const currentTranslateX = this.chapterTranslateX - event.deltaX;
+            document.body.style.transform = `translateX(${currentTranslateX}px)`;
+          }
         }
-
-        document.body.addEventListener('transitionend', e => {
-          document.body.style.transition = 'unset';
-        }, {once: true});
-        document.body.style.transition = 'transform 200ms';
-        document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
-      } else {
-        document.body.style.transform = `translateX(${currentTranslateX}px)`;
-      }
-    } else {
-      // Inside chapter
-      if (event.isFinal) {
-        // Translation forward means negative translateX
-        const currentTranslateX = navPoint.translateX + -(event.deltaX);
-        console.log('Math.abs(currentTranslateX % pageScrollWidth)',
-            currentTranslateX, pageScrollWidth,
-            Math.abs(currentTranslateX % pageScrollWidth));
-        const remainder = Math.abs(currentTranslateX % pageScrollWidth);
-        // Should we scroll ahead or back one page?
-        // This could be changed to be 1/3 or some other fraction of pageScrollWidth
-        if (direction === -1 && remainder > pageScrollWidth / 2) {
-          navPoint.translateX -= pageScrollWidth;
-        } else if (direction === 1 && remainder < pageScrollWidth / 2) {
-          navPoint.translateX += pageScrollWidth;
+      } else { // page
+        if (event.isFinal) {
+          if (crossedThreshold) {
+            this.previousPage();
+          } else {
+            element.addEventListener('transitionend', e => {
+              element.style.transition = 'unset';
+            }, {once: true});
+            element.style.transition = 'transform 200ms';
+            element.style.transform = `translateX(${navPoint.translateX}px)`;
+          }
+        } else {
+          let pageTranslate = navPoint.translateX - event.deltaX;
+          element.addEventListener('transitionend', e => {
+            element.style.transition = 'unset';
+          }, {once: true});
+          element.style.transition = 'transform 200ms';
+          element.style.transform = `translateX(${pageTranslate}px)`;
         }
-
-        console.log('navPoint.translateX', navPoint.translateX);
-        element.addEventListener('transitionend', e => {
-          element.style.transition = 'unset';
-        }, {once: true});
-        element.style.transition = 'transform 200ms';
-        element.style.transform = `translateX(${navPoint.translateX}px)`;
-      } else {
-        element.style.transform = `translateX(${navPoint.translateX +
-        -(event.deltaX)}px)`;
-        console.log('pan', navPoint.translateX + -(event.deltaX));
+      }
+    } else { //forward
+      if (nextPageTranslate >= maxScroll) { // chapter
+        if (currentIdx === (this.navigationList.length - 1)) {
+          console.log('Last page in last chapter - ignore');
+        } else {
+          if (event.isFinal) {
+            if (crossedThreshold) {
+              this.nextPage();
+            } else {
+              document.body.addEventListener('transitionend', e => {
+                document.body.style.transition = 'unset';
+              }, {once: true});
+              document.body.style.transition = 'transform 200ms';
+              document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+            }
+          } else {
+            const currentTranslateX = this.chapterTranslateX - event.deltaX;
+            document.body.addEventListener('transitionend', e => {
+              document.body.style.transition = 'unset';
+            }, {once: true});
+            document.body.style.transition = 'transform 200ms';
+            document.body.style.transform = `translateX(${currentTranslateX}px)`;
+          }
+        }
+      } else { // page
+        if (event.isFinal) {
+          if (crossedThreshold) {
+            this.nextPage();
+          } else {
+            element.addEventListener('transitionend', e => {
+              element.style.transition = 'unset';
+            }, {once: true});
+            element.style.transition = 'transform 200ms';
+            element.style.transform = `translateX(${navPoint.translateX}px)`;
+          }
+        } else {
+          let pageTranslate = navPoint.translateX - event.deltaX;
+          element.addEventListener('transitionend', e => {
+            element.style.transition = 'unset';
+          }, {once: true});
+          element.style.transition = 'transform 200ms';
+          element.style.transform = `translateX(${pageTranslate}px)`;
+        }
       }
     }
   }
@@ -293,7 +411,7 @@ class Epub2Resource {
         itemClass: itemClass,
         label: label,
         translateX: 0,
-        maxScroll: 0,
+        chapterProgress: 0,
       };
     }).sort((a, b) => {
       return a.playOrder - b.playOrder;
@@ -397,13 +515,6 @@ class GestureDetector {
           this.startCoords = null;
         }
         break;
-        /*
-              case 'click':
-                this.emitClickEvent(event);
-                this.previousCoords = null;
-                this.startCoords = null;
-                break;
-        */
     }
   }
 
@@ -450,11 +561,32 @@ let epub = null;
   console.log('Start loading book!');
   const urlParams = new URLSearchParams(window.location.search);
   const book = urlParams.get('book');
+  const chapter = urlParams.get('chapter');
+  const progress = urlParams.get('progress');
   epub = await Epub2Resource.create(`books/${book}`);
   disableBodyScroll(document.querySelector(':root'));
   disableBodyScroll(document.querySelector('body'));
   epub.renderBook(document.body);
-  epub.loadChapter(epub.navigationList[0], document.body);
-  epub.loadChapter(epub.navigationList[1], document.body);
+  const item = localStorage.getItem(`${epub.href}/currentNavPoint`);
+  const storedNavPoint = JSON.parse(item);
+  const chapterNavPoint = epub.navigationList.find(np => np.id === chapter);
+  if (chapterNavPoint) {
+    epub.currentNavPoint = chapterNavPoint;
+    if (progress) {
+      epub.currentNavPoint.chapterProgress = progress
+    }
+  } else if (storedNavPoint) {
+    let storedProgress = localStorage.getItem(`${epub.href}/chapterProgress`);
+    epub.currentNavPoint = epub.navigationList.find(np => {
+      return np.id === storedNavPoint.id;
+    });
+    epub.currentNavPoint.chapterProgress = storedProgress;
+  } else {
+    epub.currentNavPoint = epub.navigationList[0];
+  }
+  console.log('Load navPoint', epub.currentNavPoint);
+  epub.loadChapter(epub.currentNavPoint, document.body);
+  epub.preloadFrames(epub.currentNavPoint);
+  epub.updateProgress();
   console.log('Book loaded!');
 })();
