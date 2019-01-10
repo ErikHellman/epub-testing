@@ -668,6 +668,10 @@ let epub;
         return;
     }
     const response = await fetch(`books/${book}/mimetype`);
+    if (response.status >= 400) {
+        alert(`Couldn't find book at books/${book}`);
+        return;
+    }
     const mimetype = (await response.text()).trim();
     if (mimetype !== 'application/epub+zip') {
         alert(`Invalid book type. Expecting "application/epub+zip" but got ${mimetype}`);
