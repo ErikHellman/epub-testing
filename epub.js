@@ -2,9 +2,9 @@
 const disableBodyScroll = bodyScrollLock.disableBodyScroll;
 const PACKAGE_DOCUMENT_MIME = 'application/oebps-package+xml';
 
-class Epub2Resource {
+class Epub {
     static async create(href) {
-        const resource = new Epub2Resource(href);
+        const resource = new Epub(href);
         await resource.init();
         return resource;
     }
@@ -18,15 +18,15 @@ class Epub2Resource {
 
     async init() {
         const containerPath = `${this.href}/META-INF/container.xml`;
-        this.container = await Epub2Resource.loadContainer(containerPath);
+        this.container = await Epub.loadContainer(containerPath);
         const rootFiles = this.container.querySelectorAll('rootfile');
         const packageDocPath = Array.from(rootFiles).find(n => {
             return n.getAttribute('media-type') === PACKAGE_DOCUMENT_MIME;  // Can only be one in ePub2
         }).getAttribute('full-path');
-        this.packageDocument = await Epub2Resource.loadPackageDocument(
+        this.packageDocument = await Epub.loadPackageDocument(
             `${this.href}/${packageDocPath}`);
         const basePath = `${this.href}/${packageDocPath.substring(0, packageDocPath.lastIndexOf('/'))}/`;
-        this.navigationList = Epub2Resource.buildNavigationFromSpine(this.packageDocument, basePath);
+        this.navigationList = Epub.buildNavigationFromSpine(this.packageDocument, basePath);
         /*
                 const spine = this.packageDocument.querySelector('spine');
                 const tocId = spine.getAttribute('toc');
@@ -36,8 +36,8 @@ class Epub2Resource {
                     packageDocPath.lastIndexOf('/'));
                 const basePath = `${this.href}/${contentPath}`;
                 const ncxPath = `${basePath}/${ncxFile}`;
-                const ncxDocument = await Epub2Resource.loadNavigationControl(ncxPath);
-                this.navigationList = Epub2Resource.buildNavigationList(ncxDocument,
+                const ncxDocument = await Epub.loadNavigationControl(ncxPath);
+                this.navigationList = Epub.buildNavigationList(ncxDocument,
                     basePath);
         */
     }
@@ -45,7 +45,7 @@ class Epub2Resource {
     renderBook(rootElement) {
         this.navigationList.forEach(
             async navPoint => {
-                await Epub2Resource.createIFrame(navPoint, rootElement);
+                await Epub.createIFrame(navPoint, rootElement);
             });
     }
 
@@ -53,28 +53,93 @@ class Epub2Resource {
         return document.querySelector(`#${this.currentNavPoint.id}`);
     }
 
+    hijackLinks(rootElement) {
+        const links = Array.from(rootElement.querySelectorAll('a'));
+        links.forEach(link => {
+            const href = link.getAttribute('href');
+            console.log(`Hijack link to ${href}`);
+            link.removeAttribute('href');
+            link.addEventListener('click', () => {
+                console.log(`Go to ${href}`);
+                const navPoint = this.navigationList.find(np => {
+                    return np.src.endsWith(href);
+                });
+                this.goToChapter(navPoint);
+            })
+        });
+    }
+
     loadChapter(navPoint, rootElement) {
         const iframe = rootElement.querySelector(`#${navPoint.id}`);
         if (iframe.src === '') {
             console.log(`Load chapter ${navPoint.src}`);
             iframe.addEventListener('load', () => {
-                const cssLink = document.createElement('link');
-                cssLink.rel = 'stylesheet';
-                cssLink.href = '/resource.css';
-                cssLink.type = 'text/css';
-                cssLink.addEventListener('load', () => {
-                    const columnGap = 40; // TODO This shouldn't be hard coded.
-                    navPoint.scrollWidth = iframe.contentDocument.body.scrollWidth;
-                    console.log(
-                        `Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
-                    const navPointIndex = this.navigationList.findIndex(np => {
-                        return np.id === navPoint.id;
-                    });
-                    const currentIndex = this.navigationList.findIndex(np => {
-                        return np.id === this.currentNavPoint.id;
-                    });
-                    const html = iframe.contentDocument.querySelector('head');
+                const columnGap = 40; // TODO This shouldn't be hard coded.
+                let rootElement = iframe.contentDocument.querySelector(':root');
+                navPoint.scrollWidth = rootElement.scrollWidth;
+                if (navPoint.mediaType === 'application/xhtml+xml') {
+                    // Hijack all links
+                    this.hijackLinks(rootElement);
+                    const cssLink = document.createElement('link');
+                    cssLink.rel = 'stylesheet';
+                    cssLink.href = '/resource.css';
+                    cssLink.type = 'text/css';
+                    cssLink.addEventListener('load', () => {
+                        console.log(
+                            `Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
+                        const navPointIndex = this.navigationList.findIndex(np => {
+                            return np.id === navPoint.id;
+                        });
+                        const currentIndex = this.navigationList.findIndex(np => {
+                            return np.id === this.currentNavPoint.id;
+                        });
+                        const html = iframe.contentDocument.querySelector('head');
 
+                        if (navPoint.id === this.currentNavPoint.id) {
+                            let index = this.navigationList.findIndex(np => {
+                                return navPoint.id === np.id;
+                            });
+
+                            if (index >= 0) {
+                                this.chapterTranslateX = index * -(window.innerWidth);
+                                console.log(
+                                    `Jump to chapter ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
+                                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                                if (this.currentNavPoint.chapterProgress) {
+                                    console.log(
+                                        `Chapter progress ${this.currentNavPoint.chapterProgress}`);
+                                    const path = this.currentNavPoint.chapterProgress.split('/').map(idx => `:nth-child(${idx})`);
+                                    const selector = ':root > ' + path.join(' > ');
+                                    console.log('CSS selector for progress:', selector);
+                                    const progressElement = iframe.contentDocument.querySelector(
+                                        selector);
+                                    if (progressElement) {
+                                        console.log('Scroll to:', progressElement);
+                                        const clientRects = progressElement.getClientRects();
+                                        this.currentNavPoint.translateX = -clientRects[clientRects.length -
+                                        1].x + columnGap;
+                                        const html = this.currentFrame.contentDocument.querySelector(
+                                            'html');
+                                        html.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+                                    }
+                                }
+                                console.log(`Rendered ${navPoint.id}`);
+                            } else {
+                                console.error('Invalid or unexpected navPoint!', navPoint);
+                            }
+                        } else if (currentIndex > navPointIndex && navPointIndex >= 0) {
+                            navPoint.translateX = navPoint.scrollWidth -
+                                (window.innerWidth - columnGap);
+                            html.style.transform = `translateX(${navPoint.translateX}px)`;
+                            console.log(`Position earlier chapter to ${navPoint.translateX}`);
+                        } else if (currentIndex < navPointIndex && navPointIndex >= 0) {
+                            navPoint.translateX = 0;
+                            html.style.transform = `translateX(${navPoint.translateX}px)`;
+                            console.log(`Position later chapter to ${navPoint.translateX}`);
+                        }
+                    });
+                    iframe.contentDocument.head.appendChild(cssLink);
+                } else { // This is not HTML
                     if (navPoint.id === this.currentNavPoint.id) {
                         let index = this.navigationList.findIndex(np => {
                             return navPoint.id === np.id;
@@ -85,44 +150,13 @@ class Epub2Resource {
                             console.log(
                                 `Jump to chapter ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
                             document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
-                            if (this.currentNavPoint.chapterProgress) {
-                                console.log(
-                                    `Chapter progress ${this.currentNavPoint.chapterProgress}`);
-                                const path = this.currentNavPoint.chapterProgress.split('/').map(idx => `:nth-child(${idx})`);
-                                const selector = ':root > ' + path.join(' > ');
-                                console.log('CSS selector for progress:', selector);
-                                const progressElement = iframe.contentDocument.querySelector(
-                                    selector);
-                                if (progressElement) {
-                                    console.log('Scroll to:', progressElement);
-                                    const clientRects = progressElement.getClientRects();
-                                    this.currentNavPoint.translateX = -clientRects[clientRects.length -
-                                    1].x + columnGap;
-                                    const html = this.currentFrame.contentDocument.querySelector(
-                                        'html');
-                                    html.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
-                                }
-                            }
-                            console.log(`Rendered ${navPoint.id}`);
-                        } else {
-                            console.error('Invalid or unexpected navPoint!', navPoint);
                         }
-                    } else if (currentIndex > navPointIndex && navPointIndex >= 0) {
-                        navPoint.translateX = navPoint.scrollWidth -
-                            (window.innerWidth - columnGap);
-                        html.style.transform = `translateX(${navPoint.translateX}px)`;
-                        console.log(`Position earlier chapter to ${navPoint.translateX}`);
-                    } else if (currentIndex < navPointIndex && navPointIndex >= 0) {
-                        navPoint.translateX = 0;
-                        html.style.transform = `translateX(${navPoint.translateX}px)`;
-                        console.log(`Position later chapter to ${navPoint.translateX}`);
                     }
-                });
-                iframe.contentDocument.head.appendChild(cssLink);
+                }
                 disableBodyScroll(iframe.contentDocument);
                 disableBodyScroll(iframe.contentDocument.body);
-                let htmlElem = iframe.contentDocument.querySelector('html');
-                const detector = new GestureDetector(htmlElem);
+                let rootElem = rootElement;
+                const detector = new GestureDetector(rootElem);
                 detector.onPan = e => this.performPan(e, navPoint);
                 detector.onClick = e => this.performClick(e, navPoint);
             });
@@ -203,7 +237,7 @@ class Epub2Resource {
         const screenWidth = window.innerWidth;
         const chapterWidth = this.currentNavPoint.scrollWidth;
         const pageScrollAmount = screenWidth - columnGap;
-        const element = this.currentFrame.contentDocument.querySelector('html');
+        const element = this.currentFrame.contentDocument.querySelector(':root');
         console.log('Current frame:', element);
         console.log('Next page:', Math.abs(this.currentNavPoint.translateX),
             screenWidth, chapterWidth);
@@ -244,7 +278,7 @@ class Epub2Resource {
         const columnGap = 40; // TODO This shouldn't be hard coded.
         const screenWidth = window.innerWidth;
         const pageScrollAmount = screenWidth - columnGap;
-        const element = this.currentFrame.contentDocument.querySelector('html');
+        const element = this.currentFrame.contentDocument.querySelector(':root');
         console.log('Current frame:', element);
         console.log('Previous page:', Math.abs(this.currentNavPoint.translateX),
             screenWidth);
@@ -333,7 +367,6 @@ class Epub2Resource {
                         document.body.style.transform = `translateX(${currentTranslateX}px)`;
                     }
                 }
-                buildNavigationFromSpine
             } else { // page
                 if (event.isFinal) {
                     if (crossedThreshold) {
@@ -425,7 +458,7 @@ class Epub2Resource {
         const spine = opfDoc.querySelector('spine');
         const spineItems = Array.from(spine.querySelectorAll('itemref'));
         const guide = opfDoc.querySelector('guide');
-        const references = Array.from(guide.querySelectorAll('reference'));
+        const references = guide ? Array.from(guide.querySelectorAll('reference')) : [];
 
         return spineItems
             .filter(itemref => {
@@ -433,12 +466,13 @@ class Epub2Resource {
                 if (linear) {
                     return linear.toLowerCase() === 'yes';
                 }
-                return false;
+                return true; // Default to linear === yes
             })
             .map((itemref, index) => {
                 const idref = itemref.getAttribute('idref');
                 const item = manifest.querySelector(`#${idref}`);
                 const id = item.getAttribute('id');
+                const mediaType = item.getAttribute('media-type');
                 const href = item.getAttribute('href');
                 const reference = references.find(ref => {
                     return ref.getAttribute('href') === href;
@@ -447,11 +481,10 @@ class Epub2Resource {
                 let title = '';
                 if (reference && reference.hasAttribute('title')) {
                     title = reference.getAttribute('title');
-                } else {
-                    console.log(`${idref} is missing a title or reference!`);
                 }
 
                 return {
+                    mediaType: mediaType,
                     playOrder: index,
                     src: `${basePath}/${href}`,
                     id: id,
@@ -473,12 +506,12 @@ class Epub2Resource {
         return Array.from(navPoints.values()).filter(p => {
             return p.hasAttribute('playOrder') && p.querySelector('content') !== null;
         }).map(p => {
-            const contentSrc = Epub2Resource.findChildNode(p,
+            const contentSrc = Epub.findChildNode(p,
                 n => n.tagName === 'content').getAttribute('src');
             const playOrder = parseInt(p.getAttribute('playOrder'));
             const id = p.getAttribute('id');
             const itemClass = p.getAttribute('class');
-            const label = Epub2Resource.findChildNode(p,
+            const label = Epub.findChildNode(p,
                 n => n.tagName === 'navLabel').querySelector('text').innerText;
             return {
                 playOrder: playOrder,
@@ -680,7 +713,7 @@ let epub;
 
     const chapter = urlParams.get('chapter');
     const progress = urlParams.get('progress');
-    epub = await Epub2Resource.create(`books/${book}`);
+    epub = await Epub.create(`books/${book}`);
     disableBodyScroll(document.querySelector(':root'));
     disableBodyScroll(document.querySelector('body'));
     epub.renderBook(document.body);
