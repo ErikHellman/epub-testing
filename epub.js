@@ -82,7 +82,7 @@ class Epub {
                     this.hijackLinks(rootElement);
                     const cssLink = document.createElement('link');
                     cssLink.rel = 'stylesheet';
-                    cssLink.href = '/resource.css';
+                    cssLink.href = 'resource.css';
                     cssLink.type = 'text/css';
                     cssLink.addEventListener('load', () => {
                         console.log(
@@ -138,7 +138,12 @@ class Epub {
                             console.log(`Position later chapter to ${navPoint.translateX}`);
                         }
                     });
-                    iframe.contentDocument.head.appendChild(cssLink);
+                    const head = iframe.contentDocument.querySelectorAll('head');
+                    if (!head) {
+                        console.log('Missing head element!');
+                    } else {
+                        iframe.contentDocument.head.appendChild(cssLink);
+                    }
                 } else { // This is not HTML
                     if (navPoint.id === this.currentNavPoint.id) {
                         let index = this.navigationList.findIndex(np => {
