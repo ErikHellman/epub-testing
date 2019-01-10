@@ -83,7 +83,7 @@ class Epub {
                     const cssLink = document.createElement('link');
                     cssLink.rel = 'stylesheet';
                     let baseHref = window.location.href;
-                    cssLink.href = `${baseHref.substring(0, baseHref.lastIndexOf('/'))}/`;
+                    cssLink.href = `${baseHref.substring(0, baseHref.lastIndexOf('/'))}/resource.css`;
                     cssLink.type = 'text/css';
                     cssLink.addEventListener('load', () => {
                         console.log(
