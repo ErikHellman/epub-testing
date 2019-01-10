@@ -139,11 +139,11 @@ class Epub {
                             console.log(`Position later chapter to ${navPoint.translateX}`);
                         }
                     });
-                    const head = iframe.contentDocument.querySelectorAll('head');
+                    const head = iframe.contentDocument.querySelector('head');
                     if (!head) {
                         console.log('Missing head element!');
                     } else {
-                        iframe.contentDocument.head.appendChild(cssLink);
+                        head.appendChild(cssLink);
                     }
                 } else { // This is not HTML
                     if (navPoint.id === this.currentNavPoint.id) {
