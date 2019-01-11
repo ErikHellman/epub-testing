@@ -7,6 +7,7 @@
     box-sizing: border-box;
 
     user-select: none !important;
+    touch-action:none;
     -webkit-user-select: none !important;
     -webkit-touch-callout: none !important;
 }
@@ -26,6 +27,7 @@ body {
     user-select: none !important;
     -webkit-user-select: none !important;
     -webkit-touch-callout: none !important;
+    touch-action:none;
     overflow: hidden;
 }
 

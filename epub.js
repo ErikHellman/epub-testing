@@ -76,6 +76,24 @@ class Epub {
             iframe.addEventListener('load', () => {
                 const columnGap = 40; // TODO This shouldn't be hard coded.
                 let rootElement = iframe.contentDocument.querySelector(':root');
+                const detector = new GestureDetector(rootElement);
+                detector.onPan = e => this.performPan(e, navPoint);
+                detector.onClick = e => this.performClick(e, navPoint);
+                const options = {
+                    passive: true,
+                    capture: true
+                };
+
+                rootElement.addEventListener('keydown', event => {
+                    console.log(event.type, event);
+
+                    if (event.code === 'ArrowRight' || event.code === 'Space') {
+                        this.nextPage();
+                    } else if (event.code === 'ArrowLeft') {
+                        this.previousPage();
+                    }
+                }, options);
+
                 navPoint.scrollWidth = rootElement.scrollWidth;
                 if (navPoint.mediaType === 'application/xhtml+xml') {
                     // Hijack all links
@@ -86,6 +104,7 @@ class Epub {
                     cssLink.href = `${baseHref.substring(0, baseHref.lastIndexOf('/'))}/resource.css`;
                     cssLink.type = 'text/css';
                     cssLink.addEventListener('load', () => {
+                        navPoint.scrollWidth = iframe.contentDocument.querySelector(':root').scrollWidth;
                         console.log(
                             `Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
                         const navPointIndex = this.navigationList.findIndex(np => {
@@ -161,10 +180,6 @@ class Epub {
                 }
                 disableBodyScroll(iframe.contentDocument);
                 disableBodyScroll(iframe.contentDocument.body);
-                let rootElem = rootElement;
-                const detector = new GestureDetector(rootElem);
-                detector.onPan = e => this.performPan(e, navPoint);
-                detector.onClick = e => this.performClick(e, navPoint);
             });
             iframe.addEventListener('unload', e => console.log('unload', e));
             iframe.src = navPoint.src;
@@ -213,6 +228,7 @@ class Epub {
         console.log('Store current navPoint:', this.currentNavPoint);
         localStorage.setItem(`${this.href}/currentNavPoint`,
             JSON.stringify(this.currentNavPoint));
+        this.currentFrame.contentDocument.querySelector(':root').focus();
     }
 
     goToChapter(navPoint) {
@@ -233,6 +249,7 @@ class Epub {
                 this.loadChapter(this.currentNavPoint, document.body);
                 this.preloadFrames(this.currentNavPoint);
             }
+            this.updateProgress();
         } else {
             console.error('Invalid or unexpected navPoint!', navPoint);
         }
@@ -245,8 +262,7 @@ class Epub {
         const pageScrollAmount = screenWidth - columnGap;
         const element = this.currentFrame.contentDocument.querySelector(':root');
         console.log('Current frame:', element);
-        console.log('Next page:', Math.abs(this.currentNavPoint.translateX),
-            screenWidth, chapterWidth);
+        console.log('Next page:', Math.abs(this.currentNavPoint.translateX), screenWidth, chapterWidth);
 
         let currentId = this.currentNavPoint.id;
         let currentIdx = this.navigationList.findIndex(np => np.id === currentId);
@@ -536,143 +552,6 @@ class Epub {
     static findChildNode(doc, predicate) {
         return Array.from(doc.childNodes.values()).find(predicate);
     }
-}
-
-class GestureDetector {
-    static get CLICK_DELAY_MS() {
-        return 500;
-    }
-
-    constructor(element) {
-        this._dragListener = null;
-        this._clickListener = null;
-        this.element = element;
-        this.state = 'passive';
-        this.startCoords = null;
-        this.previousCoords = null;
-        element.addEventListener('touchstart', this.onEvent.bind(this));
-        element.addEventListener('touchmove', this.onEvent.bind(this));
-        element.addEventListener('touchend', this.onEvent.bind(this));
-        element.addEventListener('touchcancel', this.onEvent.bind(this));
-        element.addEventListener('mousedown', this.onEvent.bind(this));
-        element.addEventListener('mousemove', this.onEvent.bind(this));
-        element.addEventListener('mouseup', this.onEvent.bind(this));
-        element.addEventListener('mouseleave', this.onEvent.bind(this));
-        // element.addEventListener('click', e => this.onEvent(e));
-    }
-
-    onEvent(event) {
-        // console.log(event.type, event);
-        switch (event.type) {
-            case 'touchstart':
-                this.state = 'dragging';
-                this.startCoords = {
-                    timestamp: new Date().getTime(),
-                    screenX: event.touches[0].screenX,
-                    screenY: event.touches[0].screenY,
-                };
-                this.emitDragEvent(this.startCoords, false, true);
-                break;
-            case 'touchmove':
-                const screenCoords = {
-                    timestamp: new Date().getTime(),
-                    screenX: event.touches[0].screenX,
-                    screenY: event.touches[0].screenY,
-                };
-                this.emitDragEvent(screenCoords, false, false);
-                this.previousCoords = screenCoords;
-                break;
-            case 'touchend':
-            case 'touchcancel':
-                this.state = 'passive';
-                const now = new Date().getTime();
-                if (this.previousCoords) {
-                    this.emitDragEvent(this.previousCoords, true, false);
-                } else if (now - this.startCoords.timestamp <=
-                    GestureDetector.CLICK_DELAY_MS) {
-                    this.emitClickEvent(this.startCoords);
-                }
-                this.previousCoords = null;
-                this.startCoords = null;
-                break;
-            case 'mousedown':
-                this.state = 'dragging';
-                this.startCoords = {
-                    timestamp: new Date().getTime(),
-                    screenX: event.screenX,
-                    screenY: event.screenY,
-                };
-                break;
-            case 'mousemove':
-                if (this.state === 'dragging') {
-                    const screenCoords = {
-                        timestamp: new Date().getTime(),
-                        screenX: event.screenX,
-                        screenY: event.screenY,
-                    };
-                    this.emitDragEvent(screenCoords, false, false);
-                    this.previousCoords = screenCoords;
-                }
-                break;
-            case 'mouseup':
-            case 'mouseleave':
-                if (this.state === 'dragging') {
-                    console.log(event.type, event);
-                    this.state = 'passive';
-                    const now = new Date().getTime();
-                    if (this.previousCoords) {
-                        this.emitDragEvent(this.previousCoords, true, false);
-                    } else if (now - this.startCoords.timestamp <=
-                        GestureDetector.CLICK_DELAY_MS) {
-                        this.emitClickEvent(this.startCoords);
-                    }
-                    this.previousCoords = null;
-                    this.startCoords = null;
-                }
-                break;
-        }
-    }
-
-    set onPan(listener) {
-        this._dragListener = listener;
-    }
-
-    set onClick(listener) {
-        this._clickListener = listener;
-    }
-
-    emitClickEvent(event) {
-        console.log('click', event);
-        const eventDetails = {
-            screenX: event.screenX,
-            screenY: event.screenY,
-            target: this.element,
-        };
-
-        if (this._clickListener) {
-            this._clickListener(eventDetails);
-        }
-    }
-
-    emitDragEvent(coordinates, final = false, first = false) {
-        if (this._dragListener) {
-            const deltaX = this.startCoords.screenX - coordinates.screenX;
-            const deltaY = this.startCoords.screenY - coordinates.screenY;
-            const eventDetails = {
-                isFinal: final,
-                isFirst: first,
-                deltaX: deltaX,
-                deltaY: deltaY,
-                target: this.element,
-            };
-
-            this._dragListener(eventDetails);
-        }
-    }
-}
-
-function buildSelector(path) {
-    return path.map(idx => `nth-child(${idx})`).join(' > ');
 }
 
 function getDomPath(el) {
