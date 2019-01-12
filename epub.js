@@ -14,6 +14,9 @@ class Epub {
         this.href = href;
         this.chapterTranslateX = 0;
         this.currentNavPoint = null;
+        this.rafPending = false;
+        this.panThreshold = 0.5;
+        this.columnGap = 40;
     }
 
     async init() {
@@ -43,6 +46,9 @@ class Epub {
     }
 
     renderBook(rootElement) {
+        disableBodyScroll(document.querySelector(':root'));
+        disableBodyScroll(document.querySelector('body'));
+        
         this.navigationList.forEach(
             async navPoint => {
                 await Epub.createIFrame(navPoint, rootElement);
@@ -72,10 +78,12 @@ class Epub {
     loadChapter(navPoint, rootElement) {
         const iframe = rootElement.querySelector(`#${navPoint.id}`);
         if (iframe.src === '') {
-            console.log(`Load chapter ${navPoint.src}`);
             iframe.addEventListener('load', () => {
-                const columnGap = 40; // TODO This shouldn't be hard coded.
                 let rootElement = iframe.contentDocument.querySelector(':root');
+                navPoint.scrollWidth = rootElement.scrollWidth;
+                console.log(`Loaded chapter ${navPoint.src} with widht ${navPoint.scrollWidth}`);
+
+                // Touch gestures
                 const detector = new GestureDetector(rootElement);
                 detector.onPan = e => this.performPan(e, navPoint);
                 detector.onClick = e => this.performClick(e, navPoint);
@@ -84,6 +92,7 @@ class Epub {
                     capture: true
                 };
 
+                // Keyboard navigation
                 rootElement.addEventListener('keydown', event => {
                     console.log(event.type, event);
 
@@ -94,26 +103,26 @@ class Epub {
                     }
                 }, options);
 
-                navPoint.scrollWidth = rootElement.scrollWidth;
                 if (navPoint.mediaType === 'application/xhtml+xml') {
                     // Hijack all links
                     this.hijackLinks(rootElement);
+
+                    // Setup CSS
                     const cssLink = document.createElement('link');
                     cssLink.rel = 'stylesheet';
                     let baseHref = window.location.href;
                     cssLink.href = `${baseHref.substring(0, baseHref.lastIndexOf('/'))}/resource.css`;
                     cssLink.type = 'text/css';
+
                     cssLink.addEventListener('load', () => {
-                        navPoint.scrollWidth = iframe.contentDocument.querySelector(':root').scrollWidth;
-                        console.log(
-                            `Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
+                        navPoint.scrollWidth = rootElement.scrollWidth;
+                        console.log(`CSS loaded. Scroll width of chapter ${navPoint.id}: ${navPoint.scrollWidth}`);
                         const navPointIndex = this.navigationList.findIndex(np => {
                             return np.id === navPoint.id;
                         });
                         const currentIndex = this.navigationList.findIndex(np => {
                             return np.id === this.currentNavPoint.id;
                         });
-                        const html = iframe.contentDocument.querySelector('head');
 
                         if (navPoint.id === this.currentNavPoint.id) {
                             let index = this.navigationList.findIndex(np => {
@@ -122,22 +131,18 @@ class Epub {
 
                             if (index >= 0) {
                                 this.chapterTranslateX = index * -(window.innerWidth);
-                                console.log(
-                                    `Jump to chapter ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
+                                console.log(`Jump to position ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
                                 document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
                                 if (this.currentNavPoint.chapterProgress) {
-                                    console.log(
-                                        `Chapter progress ${this.currentNavPoint.chapterProgress}`);
+                                    console.log(`Chapter progress ${this.currentNavPoint.chapterProgress}`);
                                     const path = this.currentNavPoint.chapterProgress.split('/').map(idx => `:nth-child(${idx})`);
                                     const selector = ':root > ' + path.join(' > ');
                                     console.log('CSS selector for progress:', selector);
-                                    const progressElement = iframe.contentDocument.querySelector(
-                                        selector);
+                                    const progressElement = iframe.contentDocument.querySelector(selector);
                                     if (progressElement) {
                                         console.log('Scroll to:', progressElement);
                                         const clientRects = progressElement.getClientRects();
-                                        this.currentNavPoint.translateX = -clientRects[clientRects.length -
-                                        1].x + columnGap;
+                                        this.currentNavPoint.translateX = -clientRects[clientRects.length - 1].x + this.columnGap;
                                         const html = this.currentFrame.contentDocument.querySelector(
                                             'html');
                                         html.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
@@ -148,13 +153,12 @@ class Epub {
                                 console.error('Invalid or unexpected navPoint!', navPoint);
                             }
                         } else if (currentIndex > navPointIndex && navPointIndex >= 0) {
-                            navPoint.translateX = navPoint.scrollWidth -
-                                (window.innerWidth - columnGap);
-                            html.style.transform = `translateX(${navPoint.translateX}px)`;
+                            navPoint.translateX = navPoint.scrollWidth - (window.innerWidth - this.columnGap);
+                            rootElement.style.transform = `translateX(${navPoint.translateX}px)`;
                             console.log(`Position earlier chapter to ${navPoint.translateX}`);
                         } else if (currentIndex < navPointIndex && navPointIndex >= 0) {
                             navPoint.translateX = 0;
-                            html.style.transform = `translateX(${navPoint.translateX}px)`;
+                            rootElement.style.transform = `translateX(${navPoint.translateX}px)`;
                             console.log(`Position later chapter to ${navPoint.translateX}`);
                         }
                     });
@@ -180,11 +184,13 @@ class Epub {
                 }
                 disableBodyScroll(iframe.contentDocument);
                 disableBodyScroll(iframe.contentDocument.body);
+                rootElement.focus();
             });
             iframe.addEventListener('unload', e => console.log('unload', e));
             iframe.src = navPoint.src;
         } else {
             console.log(`Chapter ${iframe.src} already loaded!`);
+            iframe.contentDocument.querySelector(':root').focus();
         }
     }
 
@@ -211,13 +217,14 @@ class Epub {
         if (nextNavPoint) {
             this.loadChapter(nextNavPoint, document.body);
         }
+
+        this.loadChapter(navPoint, document.body);
     }
 
     updateProgress() {
-        const columnGap = 40; // TODO This shouldn't be hard coded.
         // TODO Find a better way to pick first element
         const progressElement = this.currentFrame.contentDocument.elementFromPoint(
-            window.innerWidth / 2, columnGap);
+            window.innerWidth / 2, this.columnGap);
         if (progressElement && progressElement.tagName.toLocaleLowerCase() !==
             'body') {
             const path = getDomPath(progressElement).join('/');
@@ -255,11 +262,30 @@ class Epub {
         }
     }
 
+    applyTranslationWithTransition(element, translateX) {
+        element.addEventListener('transitionend', e => {
+            element.style.transition = 'unset';
+            this.updateProgress();
+        }, {once: true});
+        // TODO Would window.requestAnimationFrame() improve this?
+        if (this.rafPending) {
+            return;
+        }
+        this.rafPending = true
+        window.requestAnimationFrame(ts => {
+            if (!this.rafPending) return;
+
+            element.style.transition = 'transform 200ms';
+            element.style.transform = `translateX(${translateX}px)`
+
+            this.rafPending = false;
+        })
+    }
+
     nextPage() {
-        const columnGap = 40; // TODO This shouldn't be hard coded.
         const screenWidth = window.innerWidth;
         const chapterWidth = this.currentNavPoint.scrollWidth;
-        const pageScrollAmount = screenWidth - columnGap;
+        const pageScrollAmount = screenWidth - this.columnGap;
         const element = this.currentFrame.contentDocument.querySelector(':root');
         console.log('Current frame:', element);
         console.log('Next page:', Math.abs(this.currentNavPoint.translateX), screenWidth, chapterWidth);
@@ -274,12 +300,7 @@ class Epub {
                 console.log('Scroll to next chapter!');
                 this.chapterTranslateX -= screenWidth;
 
-                document.body.addEventListener('transitionend', e => {
-                    document.body.style.transition = 'unset';
-                    this.updateProgress();
-                }, {once: true});
-                document.body.style.transition = 'transform 200ms';
-                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                this.applyTranslationWithTransition(document.body, this.chapterTranslateX);
                 this.currentNavPoint = this.nextNavPoint(this.currentNavPoint);
                 this.preloadFrames(this.currentNavPoint);
                 console.log('New chapter:', this.currentNavPoint, this.currentFrame);
@@ -287,19 +308,14 @@ class Epub {
         } else {
             console.log('Scroll to next page.');
             this.currentNavPoint.translateX -= pageScrollAmount;
-            element.addEventListener('transitionend', e => {
-                element.style.transition = 'unset';
-                this.updateProgress();
-            }, {once: true});
-            element.style.transition = 'transform 200ms';
-            element.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+            this.applyTranslationWithTransition(element, this.currentNavPoint.translateX);
+            this.preloadFrames(this.currentNavPoint);
         }
     }
 
     previousPage() {
-        const columnGap = 40; // TODO This shouldn't be hard coded.
         const screenWidth = window.innerWidth;
-        const pageScrollAmount = screenWidth - columnGap;
+        const pageScrollAmount = screenWidth - this.columnGap;
         const element = this.currentFrame.contentDocument.querySelector(':root');
         console.log('Current frame:', element);
         console.log('Previous page:', Math.abs(this.currentNavPoint.translateX),
@@ -312,12 +328,7 @@ class Epub {
                 console.log('Scroll to previous chapter!');
                 this.chapterTranslateX += screenWidth;
 
-                document.body.addEventListener('transitionend', e => {
-                    document.body.style.transition = 'unset';
-                    this.updateProgress();
-                }, {once: true});
-                document.body.style.transition = 'transform 200ms';
-                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                this.applyTranslationWithTransition(document.body, this.chapterTranslateX);
                 this.currentNavPoint = this.previousNavPoint(this.currentNavPoint);
                 this.preloadFrames(this.currentNavPoint);
                 console.log('New chapter:', this.currentNavPoint, this.currentFrame);
@@ -325,12 +336,8 @@ class Epub {
         } else {
             console.log('Scroll to previous chapter.');
             this.currentNavPoint.translateX += pageScrollAmount;
-            element.addEventListener('transitionend', e => {
-                element.style.transition = 'unset';
-                this.updateProgress();
-            }, {once: true});
-            element.style.transition = 'transform 200ms';
-            element.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+            this.applyTranslationWithTransition(element, this.currentNavPoint.translateX);
+            this.preloadFrames(this.currentNavPoint);
         }
     }
 
@@ -346,20 +353,40 @@ class Epub {
         }
     }
 
+    applyPanTranslation(element, translation) {
+        if (this.rafPending) {
+            return;
+        }
+
+        this.rafPending = true;
+
+        window.requestAnimationFrame(event => {
+            if (!this.rafPending) {
+                return;
+            }
+                
+        element.style.transition = 'unset';
+        element.style.transform = `translateX(${translation}px)`;
+
+            this.rafPending = false
+        })
+    }
+
     performPan(event, navPoint) {
         const direction = event.deltaX > 0 ? -1 : 1;
-        const columnGap = 40; // TODO This shouldn't be hard coded.
         const element = event.target;
         const screenWidth = window.innerWidth;
-        const pageScrollWidth = window.innerWidth - columnGap;
-        const maxScroll = navPoint.scrollWidth - columnGap;
+        const pageScrollWidth = window.innerWidth - this.columnGap;
+        const maxScroll = navPoint.scrollWidth - this.columnGap;
         const chapterWidth = this.currentNavPoint.scrollWidth;
         const currentFrame = document.querySelector(`#${navPoint.id}`);
 
+        console.log('Target element:', element);
         console.log('Direction', direction);
         console.log('navPoint.translateX', navPoint.translateX);
         console.log('maxScroll', maxScroll);
         console.log('pageScrollWidth', pageScrollWidth);
+        console.log('DeltaX:', event.deltaX);
         console.log('Final event:', event.isFinal);
         console.log('First event:', event.isFirst);
 
@@ -368,11 +395,13 @@ class Epub {
         let nextPageTranslate = Math.abs(this.currentNavPoint.translateX) +
             screenWidth;
 
-        const crossedThreshold = Math.abs(event.deltaX) > 0.5 * screenWidth;
+        const crossedThreshold = Math.abs(event.deltaX) > (this.panThreshold * screenWidth);
+        console.log('Crossed threshold:', crossedThreshold);
         if (direction === 1) { // back
             if (this.currentNavPoint.translateX === 0) { // chapter
                 if (this.currentNavPoint.id === this.navigationList[0].id) {
                     console.log('First page in first chapter - ignore!');
+                    return;
                 } else {
                     if (event.isFinal) {
                         if (crossedThreshold) {
@@ -386,7 +415,7 @@ class Epub {
                         }
                     } else {
                         const currentTranslateX = this.chapterTranslateX - event.deltaX;
-                        document.body.style.transform = `translateX(${currentTranslateX}px)`;
+                        this.applyPanTranslation(document.body, currentTranslateX);
                     }
                 }
             } else { // page
@@ -402,17 +431,14 @@ class Epub {
                     }
                 } else {
                     let pageTranslate = navPoint.translateX - event.deltaX;
-                    element.addEventListener('transitionend', e => {
-                        element.style.transition = 'unset';
-                    }, {once: true});
-                    element.style.transition = 'transform 200ms';
-                    element.style.transform = `translateX(${pageTranslate}px)`;
+                    this.applyPanTranslation(element, pageTranslate);
                 }
             }
         } else { //forward
             if (nextPageTranslate >= maxScroll) { // chapter
                 if (currentIdx === (this.navigationList.length - 1)) {
                     console.log('Last page in last chapter - ignore');
+                    return;
                 } else {
                     if (event.isFinal) {
                         if (crossedThreshold) {
@@ -426,11 +452,7 @@ class Epub {
                         }
                     } else {
                         const currentTranslateX = this.chapterTranslateX - event.deltaX;
-                        document.body.addEventListener('transitionend', e => {
-                            document.body.style.transition = 'unset';
-                        }, {once: true});
-                        document.body.style.transition = 'transform 200ms';
-                        document.body.style.transform = `translateX(${currentTranslateX}px)`;
+                        this.applyPanTranslation(document.body, currentTranslateX);
                     }
                 }
             } else { // page
@@ -446,11 +468,7 @@ class Epub {
                     }
                 } else {
                     let pageTranslate = navPoint.translateX - event.deltaX;
-                    element.addEventListener('transitionend', e => {
-                        element.style.transition = 'unset';
-                    }, {once: true});
-                    element.style.transition = 'transform 200ms';
-                    element.style.transform = `translateX(${pageTranslate}px)`;
+                    this.applyPanTranslation(element, pageTranslate);
                 }
             }
         }
@@ -595,29 +613,33 @@ let epub;
         alert(`Invalid book type. Expecting "application/epub+zip" but got ${mimetype}`);
         return;
     }
-
     const chapter = urlParams.get('chapter');
     const progress = urlParams.get('progress');
+
     epub = await Epub.create(`books/${book}`);
-    disableBodyScroll(document.querySelector(':root'));
-    disableBodyScroll(document.querySelector('body'));
     epub.renderBook(document.body);
+
+    // From query paramaeters
+    const chapterNavPoint = epub.navigationList.find(np => np.id === chapter);
+
+    // From local storage
     const item = localStorage.getItem(`${epub.href}/currentNavPoint`);
     const storedNavPoint = JSON.parse(item);
-    const chapterNavPoint = epub.navigationList.find(np => np.id === chapter);
-    if (chapterNavPoint) {
+
+    if (chapterNavPoint) { // Take query params first
         epub.currentNavPoint = chapterNavPoint;
         if (progress) {
             epub.currentNavPoint.chapterProgress = progress;
         }
-    } else if (storedNavPoint) {
+    } else if (storedNavPoint) { // Then local storage
         epub.currentNavPoint = epub.navigationList.find(np => {
             return np.id === storedNavPoint.id;
         });
         epub.currentNavPoint.chapterProgress = storedNavPoint.chapterProgress;
-    } else {
+    } else { // Finally, start with first chapter
         epub.currentNavPoint = epub.navigationList[0];
     }
+
     console.log('Load navPoint', epub.currentNavPoint);
     epub.loadChapter(epub.currentNavPoint, document.body);
     epub.preloadFrames(epub.currentNavPoint);

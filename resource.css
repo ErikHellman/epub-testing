@@ -16,7 +16,7 @@
     font-size: 100% !important;
     box-sizing: border-box;
 
-    touch-action:none;
+    touch-action: none;
 }
 
 body {
@@ -41,7 +41,8 @@ body {
     overflow: hidden;
     line-height: 1.2;
 
-    touch-action:none;}
+    touch-action: none;
+}
 
 body * {
     cursor: pointer;
@@ -50,7 +51,12 @@ body * {
     -webkit-touch-callout: none !important;
     line-height: inherit;
 
-    touch-action:none;
+    touch-action: none;
 }
 
-
+img {
+    object-fit: scale-down;
+    max-height: calc(100vh - calc(2 * var(--column-padding)) - 10px);
+    max-width: calc(100vh - calc(2 * var(--column-padding)) - 10px);
+    box-sizing: border-box;
+}
