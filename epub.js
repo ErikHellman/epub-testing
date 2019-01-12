@@ -43,6 +43,17 @@ class Epub {
                 this.navigationList = Epub.buildNavigationList(ncxDocument,
                     basePath);
         */
+
+        // Keyboard navigation
+        window.addEventListener('keyup', event => {
+            console.log(event.type, event);
+
+            if (event.code === 'ArrowRight' || event.code === 'Space') {
+                this.nextPage();
+            } else if (event.code === 'ArrowLeft') {
+                this.previousPage();
+            }
+        });
     }
 
     renderBook(rootElement) {
@@ -87,21 +98,6 @@ class Epub {
                 const detector = new GestureDetector(rootElement);
                 detector.onPan = e => this.performPan(e, navPoint);
                 detector.onClick = e => this.performClick(e, navPoint);
-                const options = {
-                    passive: true,
-                    capture: true
-                };
-
-                // Keyboard navigation
-                rootElement.addEventListener('keydown', event => {
-                    console.log(event.type, event);
-
-                    if (event.code === 'ArrowRight' || event.code === 'Space') {
-                        this.nextPage();
-                    } else if (event.code === 'ArrowLeft') {
-                        this.previousPage();
-                    }
-                }, options);
 
                 if (navPoint.mediaType === 'application/xhtml+xml') {
                     // Hijack all links
