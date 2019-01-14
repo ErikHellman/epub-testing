@@ -138,10 +138,8 @@ class Epub {
                                     if (progressElement) {
                                         console.log('Scroll to:', progressElement);
                                         const clientRects = progressElement.getClientRects();
-                                        this.currentNavPoint.translateX = -clientRects[clientRects.length - 1].x + this.columnGap;
-                                        const html = this.currentFrame.contentDocument.querySelector(
-                                            'html');
-                                        html.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
+                                        this.currentNavPoint.translateX = -clientRects[0].x + this.columnGap;
+                                        rootElement.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
                                     }
                                 }
                                 console.log(`Rendered ${navPoint.id}`);
@@ -273,6 +271,7 @@ class Epub {
 
             element.style.transition = 'transform 200ms';
             element.style.transform = `translateX(${translateX}px)`
+            console.log('applyTranslationWithTransition:', translateX), element;
 
             this.rafPending = false;
         })
@@ -361,8 +360,8 @@ class Epub {
                 return;
             }
                 
-        element.style.transition = 'unset';
-        element.style.transform = `translateX(${translation}px)`;
+            element.style.transition = 'unset';
+            element.style.transform = `translateX(${translation}px)`;
 
             this.rafPending = false
         })
@@ -406,8 +405,11 @@ class Epub {
                             document.body.addEventListener('transitionend', e => {
                                 document.body.style.transition = 'unset';
                             }, {once: true});
-                            document.body.style.transition = 'transform 200ms';
-                            document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                            window.requestAnimationFrame(ts => {
+                                document.body.style.transition = 'transform 200ms';
+                                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                                console.log('Release chapter pan:', navPoint.translateX)        
+                            })
                         }
                     } else {
                         const currentTranslateX = this.chapterTranslateX - event.deltaX;
@@ -422,8 +424,11 @@ class Epub {
                         element.addEventListener('transitionend', e => {
                             element.style.transition = 'unset';
                         }, {once: true});
-                        element.style.transition = 'transform 200ms';
-                        element.style.transform = `translateX(${navPoint.translateX}px)`;
+                        window.requestAnimationFrame(ts => {
+                            element.style.transition = 'transform 200ms';
+                            element.style.transform = `translateX(${navPoint.translateX}px)`;
+                            console.log('Release chapter pan:', this.chapterTranslateX)        
+                        })
                     }
                 } else {
                     let pageTranslate = navPoint.translateX - event.deltaX;
@@ -443,8 +448,11 @@ class Epub {
                             document.body.addEventListener('transitionend', e => {
                                 document.body.style.transition = 'unset';
                             }, {once: true});
-                            document.body.style.transition = 'transform 200ms';
-                            document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                            window.requestAnimationFrame(ts => {
+                                document.body.style.transition = 'transform 200ms';
+                                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+                                console.log('Release chapter pan:', this.chapterTranslateX)    
+                            })
                         }
                     } else {
                         const currentTranslateX = this.chapterTranslateX - event.deltaX;
@@ -459,8 +467,11 @@ class Epub {
                         element.addEventListener('transitionend', e => {
                             element.style.transition = 'unset';
                         }, {once: true});
-                        element.style.transition = 'transform 200ms';
-                        element.style.transform = `translateX(${navPoint.translateX}px)`;
+                        window.requestAnimationFrame(ts => {
+                            element.style.transition = 'transform 200ms';
+                            element.style.transform = `translateX(${navPoint.translateX}px)`;
+                            console.log('Release page pan:', navPoint.translateX)    
+                        }); 
                     }
                 } else {
                     let pageTranslate = navPoint.translateX - event.deltaX;

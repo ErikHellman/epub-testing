@@ -46,7 +46,8 @@ class GestureDetector {
                     this.previousCoords = screenCoords;
                 }
                 break;
-            case 'pointerup':
+                case 'pointerup':
+                case 'pointercancel':
                 const timeStampDelta = event.timeStamp - this.startCoords.timestamp;
                 console.log('timestamp delta:', timeStampDelta);
                 if (timeStampDelta <= GestureDetector.CLICK_DELAY_MS) {
