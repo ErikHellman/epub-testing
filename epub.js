@@ -1,4 +1,5 @@
 'use strict';
+
 const disableBodyScroll = bodyScrollLock.disableBodyScroll;
 const PACKAGE_DOCUMENT_MIME = 'application/oebps-package+xml';
 
@@ -30,19 +31,6 @@ class Epub {
             `${this.href}/${packageDocPath}`);
         const basePath = `${this.href}/${packageDocPath.substring(0, packageDocPath.lastIndexOf('/'))}/`;
         this.navigationList = Epub.buildNavigationFromSpine(this.packageDocument, basePath);
-        /*
-                const spine = this.packageDocument.querySelector('spine');
-                const tocId = spine.getAttribute('toc');
-                const ncxItem = this.packageDocument.querySelector(`#${tocId}`);
-                const ncxFile = ncxItem.getAttribute('href');
-                const contentPath = packageDocPath.substring(0,
-                    packageDocPath.lastIndexOf('/'));
-                const basePath = `${this.href}/${contentPath}`;
-                const ncxPath = `${basePath}/${ncxFile}`;
-                const ncxDocument = await Epub.loadNavigationControl(ncxPath);
-                this.navigationList = Epub.buildNavigationList(ncxDocument,
-                    basePath);
-        */
 
         // Keyboard navigation
         window.addEventListener('keyup', event => {
@@ -60,9 +48,8 @@ class Epub {
         disableBodyScroll(document.querySelector(':root'));
         disableBodyScroll(document.querySelector('body'));
         
-        this.navigationList.forEach(
-            async navPoint => {
-                await Epub.createIFrame(navPoint, rootElement);
+        this.navigationList.forEach(navPoint => {
+                Epub.createIFrame(navPoint, rootElement);
             });
     }
 
@@ -86,11 +73,42 @@ class Epub {
         });
     }
 
+    moveToCurrentNavPoint() {
+        let index = this.navigationList.findIndex(np => {
+            return this.currentNavPoint.id === np.id;
+        });
+        console.log(`Move to resource index ${index}:`, this.currentNavPoint);
+
+        if (index >= 0) {
+            this.chapterTranslateX = index * -(window.innerWidth);
+            document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
+            if (this.currentNavPoint.chapterProgress) {
+                console.log(`Chapter progress ${this.currentNavPoint.chapterProgress}`);
+                const path = this.currentNavPoint.chapterProgress.split('/').map(idx => `:nth-child(${idx})`);
+                const selector = `:root > ${path.join(' > ')}`;
+                console.log('CSS selector for progress:', selector);
+                const progressElement = this.currentFrame.contentDocument.querySelector(selector);
+                const rootElement = this.currentFrame.contentDocument.querySelector(':root');
+                if (progressElement) {
+                    const clientRects = progressElement.getClientRects();
+                    console.log('Scroll to:', progressElement, clientRects);
+                    if (clientRects) {
+                        this.currentNavPoint.translateX = -clientRects[0].x + this.columnGap;
+                        rootElement.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;    
+                    }
+                }
+            }
+        } else {
+            console.error('Invalid or unexpected navPoint!', navPoint);
+        }
+    }
+
     loadChapter(navPoint, rootElement) {
         const iframe = rootElement.querySelector(`#${navPoint.id}`);
         if (iframe.src === '') {
             iframe.addEventListener('load', () => {
                 let rootElement = iframe.contentDocument.querySelector(':root');
+                rootElement.style.transition = 'none';
                 navPoint.scrollWidth = rootElement.scrollWidth;
                 console.log(`Loaded chapter ${navPoint.src} with widht ${navPoint.scrollWidth}`);
 
@@ -121,31 +139,7 @@ class Epub {
                         });
 
                         if (navPoint.id === this.currentNavPoint.id) {
-                            let index = this.navigationList.findIndex(np => {
-                                return navPoint.id === np.id;
-                            });
-
-                            if (index >= 0) {
-                                this.chapterTranslateX = index * -(window.innerWidth);
-                                console.log(`Jump to position ${index}/${navPoint.id}: ${this.chapterTranslateX}px`);
-                                document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
-                                if (this.currentNavPoint.chapterProgress) {
-                                    console.log(`Chapter progress ${this.currentNavPoint.chapterProgress}`);
-                                    const path = this.currentNavPoint.chapterProgress.split('/').map(idx => `:nth-child(${idx})`);
-                                    const selector = ':root > ' + path.join(' > ');
-                                    console.log('CSS selector for progress:', selector);
-                                    const progressElement = iframe.contentDocument.querySelector(selector);
-                                    if (progressElement) {
-                                        console.log('Scroll to:', progressElement);
-                                        const clientRects = progressElement.getClientRects();
-                                        this.currentNavPoint.translateX = -clientRects[0].x + this.columnGap;
-                                        rootElement.style.transform = `translateX(${this.currentNavPoint.translateX}px)`;
-                                    }
-                                }
-                                console.log(`Rendered ${navPoint.id}`);
-                            } else {
-                                console.error('Invalid or unexpected navPoint!', navPoint);
-                            }
+                            this.moveToCurrentNavPoint();
                         } else if (currentIndex > navPointIndex && navPointIndex >= 0) {
                             navPoint.translateX = navPoint.scrollWidth - (window.innerWidth - this.columnGap);
                             rootElement.style.transform = `translateX(${navPoint.translateX}px)`;
@@ -258,24 +252,25 @@ class Epub {
 
     applyTranslationWithTransition(element, translateX) {
         element.addEventListener('transitionend', e => {
-            element.style.transition = 'unset';
+            element.style.transition = 'none';
             this.updateProgress();
         }, {once: true});
         // TODO Would window.requestAnimationFrame() improve this?
-        if (this.rafPending) {
+/*         if (this.rafPending) {
             return;
         }
         this.rafPending = true
         window.requestAnimationFrame(ts => {
             if (!this.rafPending) return;
 
+ */
             element.style.transition = 'transform 200ms';
             element.style.transform = `translateX(${translateX}px)`
             console.log('applyTranslationWithTransition:', translateX), element;
 
-            this.rafPending = false;
+/*             this.rafPending = false;
         })
-    }
+ */    }
 
     nextPage() {
         const screenWidth = window.innerWidth;
@@ -349,7 +344,7 @@ class Epub {
     }
 
     applyPanTranslation(element, translation) {
-        if (this.rafPending) {
+/*         if (this.rafPending) {
             return;
         }
 
@@ -359,13 +354,12 @@ class Epub {
             if (!this.rafPending) {
                 return;
             }
-                
-            element.style.transition = 'unset';
-            element.style.transform = `translateX(${translation}px)`;
+ */                
+        element.style.transform = `translateX(${translation}px)`;
 
-            this.rafPending = false
+/*             this.rafPending = false
         })
-    }
+ */    }
 
     performPan(event, navPoint) {
         const direction = event.deltaX > 0 ? -1 : 1;
@@ -402,11 +396,11 @@ class Epub {
                         if (crossedThreshold) {
                             this.previousPage();
                         } else {
+                            document.body.style.transition = 'transform 200ms';
                             document.body.addEventListener('transitionend', e => {
-                                document.body.style.transition = 'unset';
+                                document.body.style.transition = 'none';
                             }, {once: true});
                             window.requestAnimationFrame(ts => {
-                                document.body.style.transition = 'transform 200ms';
                                 document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
                                 console.log('Release chapter pan:', navPoint.translateX)        
                             })
@@ -421,11 +415,11 @@ class Epub {
                     if (crossedThreshold) {
                         this.previousPage();
                     } else {
+                        element.style.transition = 'transform 200ms';
                         element.addEventListener('transitionend', e => {
-                            element.style.transition = 'unset';
+                            element.style.transition = 'none';
                         }, {once: true});
                         window.requestAnimationFrame(ts => {
-                            element.style.transition = 'transform 200ms';
                             element.style.transform = `translateX(${navPoint.translateX}px)`;
                             console.log('Release chapter pan:', this.chapterTranslateX)        
                         })
@@ -445,11 +439,11 @@ class Epub {
                         if (crossedThreshold) {
                             this.nextPage();
                         } else {
+                            document.body.style.transition = 'transform 200ms';
                             document.body.addEventListener('transitionend', e => {
-                                document.body.style.transition = 'unset';
+                                document.body.style.transition = 'none';
                             }, {once: true});
                             window.requestAnimationFrame(ts => {
-                                document.body.style.transition = 'transform 200ms';
                                 document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
                                 console.log('Release chapter pan:', this.chapterTranslateX)    
                             })
@@ -464,11 +458,11 @@ class Epub {
                     if (crossedThreshold) {
                         this.nextPage();
                     } else {
+                        element.style.transition = 'transform 200ms';
                         element.addEventListener('transitionend', e => {
-                            element.style.transition = 'unset';
+                            element.style.transition = 'none';
                         }, {once: true});
                         window.requestAnimationFrame(ts => {
-                            element.style.transition = 'transform 200ms';
                             element.style.transform = `translateX(${navPoint.translateX}px)`;
                             console.log('Release page pan:', navPoint.translateX)    
                         }); 
@@ -481,7 +475,7 @@ class Epub {
         }
     }
 
-    static async createIFrame(navPoint, parent) {
+    static createIFrame(navPoint, parent) {
         const iframe = document.createElement('iframe');
         // iframe.src = navPoint.src;
         iframe.id = navPoint.id;
@@ -601,7 +595,6 @@ function getDomPath(el) {
     return stack.slice(1);
 }
 
-let epub;
 (async () => {
     console.log('Start loading book!');
     const urlParams = new URLSearchParams(window.location.search);
@@ -623,7 +616,8 @@ let epub;
     const chapter = urlParams.get('chapter');
     const progress = urlParams.get('progress');
 
-    epub = await Epub.create(`books/${book}`);
+    const epub = await Epub.create(`books/${book}`);
+    window.epub = epub;
     epub.renderBook(document.body);
 
     // From query paramaeters
