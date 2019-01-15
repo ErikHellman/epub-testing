@@ -111,6 +111,7 @@ class Epub {
         if (iframe.src === '') {
             iframe.addEventListener('load', () => {
                 const frame = documentRoot.querySelector(`#${navPoint.id}`);
+                // frame.contentDocument.querySelector('body').classList.add('twoColumns');
                 let rootElement = frame.contentDocument.querySelector(':root');
                 rootElement.style.transition = 'none';
                 console.log(`Loaded chapter ${navPoint.src} with width ${navPoint.scrollWidth}`);
@@ -118,6 +119,11 @@ class Epub {
                 // Touch gestures
                 const detector = new GestureDetector(rootElement);
                 // detector.onPan = e => this.performPan(e, navPoint);
+                detector.onPan = e => {
+                    if (e.isFinal) {
+                        window.focus();
+                    }
+                }
                 detector.onClick = e => this.performClick(e, navPoint);
 
                 if (navPoint.mediaType === 'application/xhtml+xml') {

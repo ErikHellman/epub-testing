@@ -31,7 +31,7 @@ body {
     max-height: 100vh;
     min-width: 100vw;
     min-height: 100vh;
-    padding: var(--column-padding) var(--column-padding) !important;
+    padding: var(--column-padding) var(--column-padding) calc(var(--column-padding) * 1.5) !important;
     margin: 0 auto !important;
     box-sizing: border-box;
     column-count: 1;
@@ -42,6 +42,11 @@ body {
     line-height: 1.2;
 
     touch-action: none;
+}
+
+body.twoColumns {
+    column-count: 2;
+    column-width: 45vw;    
 }
 
 body * {
