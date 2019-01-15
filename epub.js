@@ -117,7 +117,7 @@ class Epub {
 
                 // Touch gestures
                 const detector = new GestureDetector(rootElement);
-                detector.onPan = e => this.performPan(e, navPoint);
+                // detector.onPan = e => this.performPan(e, navPoint);
                 detector.onClick = e => this.performClick(e, navPoint);
 
                 if (navPoint.mediaType === 'application/xhtml+xml') {
