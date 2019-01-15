@@ -242,13 +242,15 @@ class Epub {
         console.log('Store current navPoint:', this.currentNavPoint);
         localStorage.setItem(`${this.href}/currentNavPoint`,
             JSON.stringify(this.currentNavPoint));
-        this.currentFrame.contentDocument.querySelector(':root').focus();
+        
+        // this.currentFrame.contentDocument.querySelector(':root').focus();
     }
 
     applyTranslationWithTransition(element, translateX) {
         element.addEventListener('transitionend', e => {
             element.style.transition = 'none';
             this.updateProgress();
+            window.focus();
         }, {
             once: true
         });
