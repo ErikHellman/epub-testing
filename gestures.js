@@ -12,7 +12,7 @@ class GestureDetector {
         this.state = 'passive';
         this.startCoords = null;
         this.previousCoords = null;
-        const options = {capture: true};
+        const options = {capture: true, passive: true};
         // Use PointerEvents, at least for Chrome
         element.addEventListener('pointerdown', this.onEvent.bind(this), options);
         element.addEventListener('pointermove', this.onEvent.bind(this), options);
@@ -21,7 +21,6 @@ class GestureDetector {
     }
 
     onEvent(event) {
-        event.preventDefault();
         switch (event.type) {
             case 'pointerdown':
                 event.target.setPointerCapture(event.pointerId);

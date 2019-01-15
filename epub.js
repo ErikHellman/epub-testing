@@ -81,6 +81,7 @@ class Epub {
 
         if (index >= 0) {
             this.chapterTranslateX = index * -(window.innerWidth);
+            document.body.style.transition = 'none';
             document.body.style.transform = `translateX(${this.chapterTranslateX}px)`;
             if (this.currentNavPoint.chapterProgress) {
                 console.log(`Chapter progress ${this.currentNavPoint.chapterProgress}`);
