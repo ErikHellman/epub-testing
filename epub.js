@@ -166,10 +166,6 @@ class Epub {
             iframe.src = navPoint.src;
         } else {
             console.log(`Chapter ${iframe.src} already loaded!`);
-            if (navPoint.id === this.currentNavPoint.id) {
-                console.log('This is the current chapter - move to it!')
-                this.moveToCurrentNavPoint()
-            }
         }
     }
 
