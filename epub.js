@@ -111,7 +111,6 @@ class Epub {
         if (iframe.src === '') {
             iframe.addEventListener('load', () => {
                 const frame = documentRoot.querySelector(`#${navPoint.id}`);
-                // frame.contentDocument.querySelector('body').classList.add('twoColumns');
                 let rootElement = frame.contentDocument.querySelector(':root');
                 rootElement.style.transition = 'none';
                 console.log(`Loaded chapter ${navPoint.src} with width ${navPoint.scrollWidth}`);
@@ -167,9 +166,9 @@ class Epub {
             iframe.src = navPoint.src;
         } else {
             console.log(`Chapter ${iframe.src} already loaded!`);
-            const root = iframe.contentDocument.querySelector(':root')
-            if (root) {
-                root.focus();
+            if (navPoint.id === this.currentNavPoint.id) {
+                console.log('This is the current chapter - move to it!')
+                this.moveToCurrentNavPoint()
             }
         }
     }
@@ -181,6 +180,7 @@ class Epub {
         console.log('Check frame:', frame);
         console.log('Check navPoint.id:', navPoint.id);
         console.log(`CSS Loaded for ${navPoint.id}, scrollWidth changed to ${navPoint.scrollWidth}`);
+
         const navPointIndex = this.navigationList.findIndex(np => {
             return np.id === navPoint.id;
         });

@@ -44,9 +44,9 @@ body {
     touch-action: none;
 }
 
-body.twoColumns {
+.twoColumns {
     column-count: 2;
-    column-width: 45vw;    
+    column-width: calc(50vw - var(--column-padding));
 }
 
 body * {
